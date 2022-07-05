@@ -1,12 +1,11 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-//gaming
-//gaming 2
 #include <iostream>
 #include <stdexcept>
 #include <cstdlib>
 #include <vector>
 #include <cstring>
+#include <optional>
 
 // Window bounds
 const uint32_t WIDTH = 800;
@@ -114,7 +113,38 @@ private:
     }
 
     bool isDeviceSuitable(VkPhysicalDevice device) {
-        return true;
+        QueueFamilyIndicies indicies = findQueueFamilies(device);
+
+        return indicies.isComplete();
+    }
+    struct QueueFamilyIndicies{
+       std::optional<uint32_t> graphicsFamily;
+
+       bool isComplete(){
+           return graphicsFamily.has_value();
+       }
+    };
+
+    QueueFamilyIndicies findQueueFamilies(VkPhysicalDevice device){
+        QueueFamilyIndicies indicies;
+        uint32_t queueFamilyCount = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+        int i = 0;
+        for (const auto& queueFamily : queueFamilies){
+            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT){
+                indicies.graphicsFamily = i;
+            }
+
+            if (indicies.isComplete()){
+                break;
+            }
+
+            i++;
+        }
+        return indicies;
     }
 
     void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo){
