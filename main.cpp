@@ -1,11 +1,15 @@
+#define VK_USE_PLATFORM_WIN32_KHR
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
 #include <iostream>
 #include <stdexcept>
 #include <cstdlib>
 #include <vector>
 #include <cstring>
 #include <optional>
+
 
 // Window bounds
 const uint32_t WIDTH = 800;
@@ -49,6 +53,7 @@ private:
     VkDevice device;
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     VkQueue graphicsQueue;
+    VkSurfaceKHR surface;
 
 // Validation layer checking
     bool checkValidationLayerSupport(){
@@ -94,6 +99,21 @@ private:
         //setupDebugMessenger();
         pickPhysicalDevice();
         createLogicalDevice();
+    }
+
+    void createSurface(){
+        VkWin32SurfaceCreateInfoKHR createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+        createInfo.hwnd = glfwGetWin32Window(window);
+        createInfo.hinstance = GetModuleHandle(nullptr);
+
+        if (vkCreateWin32SurfaceKHR(instance, &createInfo, nullptr, &surface) != VK_SUCCESS){
+            throw std::runtime_error("failed to create window surface!");
+        }
+
+        if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS){
+            throw std::runtime_error("failed to create window surface!");
+        }
     }
 
     void createLogicalDevice(){
@@ -159,13 +179,15 @@ private:
     }
     struct QueueFamilyIndices{
        std::optional<uint32_t> graphicsFamily;
-
+       std::optional<uint32_t> presentFamily;
        bool isComplete(){
-           return graphicsFamily.has_value();
+           return graphicsFamily.has_value() && presentFamily.has_value();
        }
     };
 
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device){
+        VkBool32 presentSupport = false;
+
         QueueFamilyIndices indices;
         uint32_t queueFamilyCount = 0;
         vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
@@ -318,6 +340,7 @@ private:
             DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
         }
 
+        vkDestroySurfaceKHR(instance, surface, nullptr);
         vkDestroyInstance(instance, nullptr);
 
         glfwDestroyWindow(window);
