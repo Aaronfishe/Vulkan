@@ -9,6 +9,7 @@
 #include <vector>
 #include <cstring>
 #include <optional>
+#include <set>
 
 
 // Window bounds
@@ -118,6 +119,10 @@ private:
 
     void createLogicalDevice(){
         QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+        VkQueue presentQueue;
+
+        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+        std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
         VkDeviceQueueCreateInfo queueCreateInfo{};
         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -186,8 +191,6 @@ private:
     };
 
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device){
-        VkBool32 presentSupport = false;
-
         QueueFamilyIndices indices;
         uint32_t queueFamilyCount = 0;
         vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
@@ -198,6 +201,12 @@ private:
         for (const auto& queueFamily : queueFamilies){
             if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT){
                 indices.graphicsFamily = i;
+            }
+
+            VkBool32 presentSupport = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+            if (presentSupport){
+                indices.presentFamily = i;
             }
 
             if (indices.isComplete()){
