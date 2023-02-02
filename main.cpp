@@ -37,8 +37,8 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
 // Model and texture paths
-const std::string MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/viking_room.obj";
-const std::string TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/viking_room.png";
+const std::string MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/common-cockle.obj";
+const std::string TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/common-cockle_Diffuse.jpg";
 
 // Defining validation layers
 const std::vector<const char*> validationLayers = {
@@ -48,6 +48,41 @@ const std::vector<const char*> validationLayers = {
 const std::vector<const char*> deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
+
+// rotation variables
+bool rotate_xpos = false;
+bool rotate_xneg = false;
+
+bool rotate_ypos = false;
+bool rotate_yneg = false;
+
+bool rotate_zpos = false;
+bool rotate_zneg = false;
+
+bool move_forward = false;
+bool move_backward = false;
+
+bool move_left = false;
+bool move_right = false;
+
+bool move_up = false;
+bool move_down = false;
+
+float rotation_factor = 15;
+float movement_factor = 10;
+
+glm::mat4 store_rotation;
+int store_x = 5;
+int store_y = 5;
+int store_z = 5;
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+bool ubo_first_time = true;
+
+// Delta time calculations
+float deltaTime = 0.0f;
+float lastFrameTime = 0.0f;
 
 // File loading system
 
@@ -162,8 +197,107 @@ std::vector<Vertex> vertices;
 
 std::vector<uint32_t> indices;
 
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    // rotate x
+    if (key == GLFW_KEY_A && action == GLFW_PRESS) {
+        rotate_xpos = true;
+    }
+
+    if (key == GLFW_KEY_A && action == GLFW_RELEASE) {
+        rotate_xpos = false;
+    }
+
+    if (key == GLFW_KEY_D && action == GLFW_PRESS) {
+        rotate_xneg = true;
+    }
+
+    if (key == GLFW_KEY_D && action == GLFW_RELEASE) {
+        rotate_xneg = false;
+    }
+    // rotate y
+    if (key == GLFW_KEY_W && action == GLFW_PRESS) {
+        rotate_ypos = true;
+    }
+
+    if (key == GLFW_KEY_W && action == GLFW_RELEASE) {
+        rotate_ypos = false;
+    }
+
+    if (key == GLFW_KEY_S && action == GLFW_PRESS) {
+        rotate_yneg = true;
+    }
+
+    if (key == GLFW_KEY_S && action == GLFW_RELEASE) {
+        rotate_yneg = false;
+    }
+    // rotate z
+    if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
+        rotate_zpos = true;
+    }
+
+    if (key == GLFW_KEY_Q && action == GLFW_RELEASE) {
+        rotate_zpos = false;
+    }
+
+    if (key == GLFW_KEY_E && action == GLFW_PRESS) {
+        rotate_zneg = true;
+    }
+
+    if (key == GLFW_KEY_E && action == GLFW_RELEASE) {
+        rotate_zneg = false;
+    }
+    // right movement
+    if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS) {
+        move_right = true;
+    }
+
+    if (key == GLFW_KEY_RIGHT && action == GLFW_RELEASE) {
+        move_right = false;
+    }
+    // left movement
+    if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
+        move_left = true;
+    }
+
+    if (key == GLFW_KEY_LEFT && action == GLFW_RELEASE) {
+        move_left = false;
+    }
+    // forward movement
+    if (key == GLFW_KEY_UP && action == GLFW_PRESS) {
+        move_forward = true;
+    }
+
+    if (key == GLFW_KEY_UP && action == GLFW_RELEASE) {
+        move_forward = false;
+    }
+    // backward movement
+    if (key == GLFW_KEY_DOWN && action == GLFW_PRESS) {
+        move_backward = true;
+    }
+
+    if (key == GLFW_KEY_DOWN && action == GLFW_RELEASE) {
+        move_backward = false;
+    }
+
+    if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS) {
+        move_up = true;
+    }
+
+    if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_RELEASE) {
+        move_up = false;
+    }
+
+    if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_PRESS) {
+        move_down = true;
+    }
+
+    if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_RELEASE) {
+        move_down = false;
+    }
+}
+
 // Definition for rendering main system
-class HelloTriangleApplication {
+class VulkanEngine {
 // public classes
 public:
     void run() {
@@ -260,7 +394,7 @@ private:
     }
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height){
-        auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
+        auto app = reinterpret_cast<VulkanEngine*>(glfwGetWindowUserPointer(window));
         app->framebufferResized = true;
     }
 
@@ -290,12 +424,15 @@ private:
         createDescriptorSets();
         createCommandBuffers();
         createSyncObjects();
+
+        glfwSetKeyCallback(window, key_callback);
     }
 
     // Controls main function
     void mainLoop() {
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
+            frameTime();
             drawFrame();
         }
 
@@ -749,7 +886,7 @@ private:
         depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        depthAttachment.finalLayout - VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
         VkAttachmentDescription colorAttachmentResolve{};
         colorAttachmentResolve.format = swapChainImageFormat;
@@ -1713,6 +1850,12 @@ private:
 
     }
 
+    void frameTime() {
+        float currentFrameTime = glfwGetTime();
+        deltaTime = currentFrameTime - lastFrameTime;
+        lastFrameTime = currentFrameTime;
+    }
+
 
     void drawFrame() {
         vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
@@ -1787,10 +1930,76 @@ private:
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
         UniformBufferObject ubo{};
-        ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(-40.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 10.0f);
+// rotation
+        if (ubo_first_time) {
+            ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+            ubo_first_time = false;
+            store_rotation = ubo.model;
+        }
+
+        ubo.model = store_rotation;
+
+        float rotation_speed = rotation_factor * deltaTime;
+        float movement_speed = movement_factor * deltaTime;
+
+        if (rotate_xpos) {
+            ubo.model = glm::rotate(ubo.model, glm::radians(-(rotation_speed)), glm::vec3(0.0f, 0.0f, 1.0f));
+        }
+
+        if (rotate_xneg) {
+            ubo.model = glm::rotate(ubo.model, glm::radians(rotation_speed), glm::vec3(0.0f, 0.0f, 1.0f));
+        }
+
+        if (rotate_ypos) {
+            ubo.model = glm::rotate(ubo.model, glm::radians(-(rotation_speed)), glm::vec3(0.0f, 1.0f, 0.0f));
+        }
+
+        if (rotate_yneg) {
+            ubo.model = glm::rotate(ubo.model, glm::radians(rotation_speed), glm::vec3(0.0f, 1.0f, 0.0f));
+        }
+
+        if (rotate_zpos) {
+            ubo.model = glm::rotate(ubo.model, glm::radians(rotation_speed), glm::vec3(1.0f, 0.0f, 0.0f));
+        }
+
+        if (rotate_zneg) {
+            ubo.model = glm::rotate(ubo.model, glm::radians(-(rotation_speed)), glm::vec3(1.0f, 0.0f, 0.0f));
+        }
+
+        if (move_forward) {
+            cameraPos += movement_speed * cameraFront;
+        }
+
+        if (move_backward) {
+            cameraPos -= movement_speed * cameraFront;
+        }
+
+        if (move_up) {
+            cameraPos.y += movement_speed;
+        }
+
+        if (move_down) {
+            cameraPos.y -= movement_speed;
+        }
+
+        if (move_left) {
+            cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp))* movement_speed;
+        }
+
+        if (move_right) {
+            cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp))* movement_speed;
+        }
+
+        else {
+            ubo.model = glm::rotate(ubo.model, glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+            ubo.model = glm::rotate(ubo.model, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+            ubo.model = glm::rotate(ubo.model, glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        }
+
+        ubo.view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+        ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 500.0f);
         ubo.proj[1][1] *= -1;
+        store_rotation = ubo.model;
 
         memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
     }
@@ -1850,7 +2059,7 @@ private:
 };
 
 int main() {
-    HelloTriangleApplication app;
+    VulkanEngine app;
 // Basic error handling
     try {
         app.run();
