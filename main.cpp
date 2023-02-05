@@ -49,7 +49,7 @@ const std::vector<const char*> deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-// rotation variables
+// rotation and translation variables
 bool rotate_xpos = false;
 bool rotate_xneg = false;
 
@@ -72,13 +72,21 @@ float rotation_factor = 15;
 float movement_factor = 10;
 
 glm::mat4 store_rotation;
-int store_x = 5;
-int store_y = 5;
-int store_z = 5;
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 bool ubo_first_time = true;
+
+// Camera rotation
+float cursorX = 0.0f;
+float cursorY = 0.0f;
+float lastX;
+float lastY;
+float mouseSensitivity = 0.1f;
+bool first_mouse = true;
+
+float yaw = -90.0f;
+float pitch = 0.0f;
 
 // Delta time calculations
 float deltaTime = 0.0f;
@@ -296,6 +304,11 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     }
 }
 
+void cursor_position_callback(GLFWwindow* window, double xposIn, double yposIn) {
+    cursorX = xposIn;
+    cursorY = yposIn;
+}
+
 // Definition for rendering main system
 class VulkanEngine {
 // public classes
@@ -426,6 +439,8 @@ private:
         createSyncObjects();
 
         glfwSetKeyCallback(window, key_callback);
+        glfwSetCursorPosCallback(window, cursor_position_callback);
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
 
     // Controls main function
@@ -1941,6 +1956,36 @@ private:
 
         float rotation_speed = rotation_factor * deltaTime;
         float movement_speed = movement_factor * deltaTime;
+
+        if (first_mouse) {
+            lastX = cursorX;
+            lastY = cursorY;
+            first_mouse = false;
+        }
+
+        float xoffset = cursorX - lastX;
+        float yoffset = lastY - cursorY;
+
+        lastX = cursorX;
+        lastY = cursorY;
+
+        xoffset *= mouseSensitivity;
+        yoffset *= mouseSensitivity;
+
+        yaw += xoffset;
+        pitch += yoffset;
+
+        // prevents pitch from moving out of range
+        if (pitch > 89.0f)
+            pitch = 89.0f;
+        if (pitch < -89.0f)
+            pitch = -89.0f;
+
+        glm::vec3 front;
+        front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+        front.y = sin(glm::radians(pitch));
+        front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+        cameraFront = glm::normalize(front);
 
         if (rotate_xpos) {
             ubo.model = glm::rotate(ubo.model, glm::radians(-(rotation_speed)), glm::vec3(0.0f, 0.0f, 1.0f));
