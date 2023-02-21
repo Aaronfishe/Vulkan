@@ -23,6 +23,10 @@
 #include <array>
 #include <unordered_map>
 
+#include "collision.cpp"
+#include "bufferobjects.cpp"
+#include "inputmanagement.cpp"
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
@@ -33,12 +37,12 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 
 
 // Window bounds
-const uint32_t WIDTH = 800;
-const uint32_t HEIGHT = 600;
+const uint32_t WIDTH = 1920;
+const uint32_t HEIGHT = 1080;
 
 // Model and texture paths
-const std::string MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/common-cockle.obj";
-const std::string TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/common-cockle_Diffuse.jpg";
+const std::string MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/cube.obj";
+const std::string TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/blamk.png";
 
 // Defining validation layers
 const std::vector<const char*> validationLayers = {
@@ -49,48 +53,8 @@ const std::vector<const char*> deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-// rotation and translation variables
-bool rotate_xpos = false;
-bool rotate_xneg = false;
-
-bool rotate_ypos = false;
-bool rotate_yneg = false;
-
-bool rotate_zpos = false;
-bool rotate_zneg = false;
-
-bool move_forward = false;
-bool move_backward = false;
-
-bool move_left = false;
-bool move_right = false;
-
-bool move_up = false;
-bool move_down = false;
-
-float rotation_factor = 15;
-float movement_factor = 10;
-
-glm::mat4 store_rotation;
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-bool ubo_first_time = true;
-
-// Camera rotation
-float cursorX = 0.0f;
-float cursorY = 0.0f;
-float lastX;
-float lastY;
-float mouseSensitivity = 0.1f;
-bool first_mouse = true;
-
-float yaw = -90.0f;
-float pitch = 0.0f;
-
-// Delta time calculations
-float deltaTime = 0.0f;
-float lastFrameTime = 0.0f;
+// Ubo initialisation
+UBO testCube;
 
 // File loading system
 
@@ -195,119 +159,8 @@ namespace std{
     };
 }
 
-struct UniformBufferObject {
-    alignas(16) glm::mat4 model;
-    alignas(16) glm::mat4 view;
-    alignas(16) glm::mat4 proj;
-};
-
 std::vector<Vertex> vertices;
-
 std::vector<uint32_t> indices;
-
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    // rotate x
-    if (key == GLFW_KEY_A && action == GLFW_PRESS) {
-        rotate_xpos = true;
-    }
-
-    if (key == GLFW_KEY_A && action == GLFW_RELEASE) {
-        rotate_xpos = false;
-    }
-
-    if (key == GLFW_KEY_D && action == GLFW_PRESS) {
-        rotate_xneg = true;
-    }
-
-    if (key == GLFW_KEY_D && action == GLFW_RELEASE) {
-        rotate_xneg = false;
-    }
-    // rotate y
-    if (key == GLFW_KEY_W && action == GLFW_PRESS) {
-        rotate_ypos = true;
-    }
-
-    if (key == GLFW_KEY_W && action == GLFW_RELEASE) {
-        rotate_ypos = false;
-    }
-
-    if (key == GLFW_KEY_S && action == GLFW_PRESS) {
-        rotate_yneg = true;
-    }
-
-    if (key == GLFW_KEY_S && action == GLFW_RELEASE) {
-        rotate_yneg = false;
-    }
-    // rotate z
-    if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
-        rotate_zpos = true;
-    }
-
-    if (key == GLFW_KEY_Q && action == GLFW_RELEASE) {
-        rotate_zpos = false;
-    }
-
-    if (key == GLFW_KEY_E && action == GLFW_PRESS) {
-        rotate_zneg = true;
-    }
-
-    if (key == GLFW_KEY_E && action == GLFW_RELEASE) {
-        rotate_zneg = false;
-    }
-    // right movement
-    if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS) {
-        move_right = true;
-    }
-
-    if (key == GLFW_KEY_RIGHT && action == GLFW_RELEASE) {
-        move_right = false;
-    }
-    // left movement
-    if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
-        move_left = true;
-    }
-
-    if (key == GLFW_KEY_LEFT && action == GLFW_RELEASE) {
-        move_left = false;
-    }
-    // forward movement
-    if (key == GLFW_KEY_UP && action == GLFW_PRESS) {
-        move_forward = true;
-    }
-
-    if (key == GLFW_KEY_UP && action == GLFW_RELEASE) {
-        move_forward = false;
-    }
-    // backward movement
-    if (key == GLFW_KEY_DOWN && action == GLFW_PRESS) {
-        move_backward = true;
-    }
-
-    if (key == GLFW_KEY_DOWN && action == GLFW_RELEASE) {
-        move_backward = false;
-    }
-
-    if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS) {
-        move_up = true;
-    }
-
-    if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_RELEASE) {
-        move_up = false;
-    }
-
-    if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_PRESS) {
-        move_down = true;
-    }
-
-    if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_RELEASE) {
-        move_down = false;
-    }
-}
-
-void cursor_position_callback(GLFWwindow* window, double xposIn, double yposIn) {
-    cursorX = xposIn;
-    cursorY = yposIn;
-}
 
 // Definition for rendering main system
 class VulkanEngine {
@@ -400,7 +253,7 @@ private:
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-        window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+        window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", glfwGetPrimaryMonitor(), nullptr);
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
@@ -448,7 +301,11 @@ private:
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
             frameTime();
+            simulationActions();
             drawFrame();
+            if (program_shutdown) {
+                break;
+            }
         }
 
         vkDeviceWaitIdle(device);
@@ -1743,12 +1600,17 @@ private:
             bufferInfo.offset = 0;
             bufferInfo.range = sizeof(UniformBufferObject);
 
+            VkDescriptorBufferInfo bufferInfo2{};
+            bufferInfo.buffer = uniformBuffers[i];
+            bufferInfo.offset = 0;
+            bufferInfo.range = sizeof(UniformBufferObject);
+
             VkDescriptorImageInfo imageInfo{};
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             imageInfo.imageView = textureImageView;
             imageInfo.sampler = textureSampler;
 
-            std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+            std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
             descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[0].dstSet = descriptorSets[i];
@@ -1760,11 +1622,19 @@ private:
 
             descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[1].dstSet = descriptorSets[i];
-            descriptorWrites[1].dstBinding = 1;
+            descriptorWrites[1].dstBinding = 0;
             descriptorWrites[1].dstArrayElement = 0;
-            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             descriptorWrites[1].descriptorCount = 1;
-            descriptorWrites[1].pImageInfo = &imageInfo;
+            descriptorWrites[1].pBufferInfo = &bufferInfo;
+
+            descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[2].dstSet = descriptorSets[i];
+            descriptorWrites[2].dstBinding = 1;
+            descriptorWrites[2].dstArrayElement = 0;
+            descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[2].descriptorCount = 1;
+            descriptorWrites[2].pImageInfo = &imageInfo;
 
             vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         }
@@ -1938,11 +1808,15 @@ private:
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
+    UniformBufferObject createUniformBufferObject(UniformBufferObject inputUbo) {
+        inputUbo;
+    }
+
     void updateUniformBuffer(uint32_t currentImage) {
-        static auto startTime = std::chrono::high_resolution_clock::now();
+        /*static auto startTime = std::chrono::high_resolution_clock::now();
 
         auto currentTime = std::chrono::high_resolution_clock::now();
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();*/
 
         UniformBufferObject ubo{};
 // rotation
@@ -1985,6 +1859,12 @@ private:
         front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
         front.y = sin(glm::radians(pitch));
         front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+
+        glm::vec3 cameraFront_movement;
+        cameraFront_movement = front;
+        cameraFront_movement.y = 0;
+        cameraFront_movement = glm::normalize(cameraFront_movement);
+
         cameraFront = glm::normalize(front);
 
         if (rotate_xpos) {
@@ -2010,13 +1890,23 @@ private:
         if (rotate_zneg) {
             ubo.model = glm::rotate(ubo.model, glm::radians(-(rotation_speed)), glm::vec3(1.0f, 0.0f, 0.0f));
         }
-
+// multiply movement by camerafront for freecam or multiply by camerafront_movement to exclude y-axis from camera facing movement
         if (move_forward) {
-            cameraPos += movement_speed * cameraFront;
+            if (freecam) {
+                cameraPos += movement_speed * cameraFront;
+            }
+            else {
+                cameraPos += cameraFront_movement * movement_speed;
+            }
         }
 
         if (move_backward) {
-            cameraPos -= movement_speed * cameraFront;
+            if (freecam) {
+                cameraPos -= movement_speed * cameraFront;
+            }
+            else {
+                cameraPos -= cameraFront_movement * movement_speed;
+            }
         }
 
         if (move_up) {
@@ -2034,12 +1924,12 @@ private:
         if (move_right) {
             cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp))* movement_speed;
         }
-
-        else {
+        // unnecessary due to ubo.model being satisfied by store_rotation
+        /*else {
             ubo.model = glm::rotate(ubo.model, glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
             ubo.model = glm::rotate(ubo.model, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
             ubo.model = glm::rotate(ubo.model, glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        }
+        }*/
 
         ubo.view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 500.0f);
@@ -2047,6 +1937,30 @@ private:
         store_rotation = ubo.model;
 
         memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+    }
+
+    void simulationActions() {
+        // Gravity
+        cameraPos.y -= 2.0f * deltaTime;
+        // Area bounds
+        if (cameraPos.y >= 100) {
+            cameraPos.y = 100.0f;
+        }
+        if (cameraPos.y <= -100) {
+            cameraPos.y = -100.0f;
+        }
+        if (cameraPos.x >= 100) {
+            cameraPos.x = 100.0f;
+        }
+        if (cameraPos.x <= -100) {
+            cameraPos.x = -100.0f;
+        }
+        if (cameraPos.z >= 100) {
+            cameraPos.z = 100.0f;
+        }
+        if (cameraPos.z <= -100) {
+            cameraPos.z = -100.0f;
+        }
     }
 
     std::vector<const char*> getRequiredExtensions(){
