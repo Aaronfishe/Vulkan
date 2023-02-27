@@ -4,9 +4,9 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include<glm/gtx/hash.hpp>
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtx/hash.hpp"
 
 #include <chrono>
 #include <iostream>
@@ -52,6 +52,9 @@ const std::vector<const char*> validationLayers = {
 const std::vector<const char*> deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
+constexpr size_t bufferObjectCount = 2;
+constexpr size_t textureObjectCount = 1;
+constexpr size_t descriptorWriteTotal = bufferObjectCount + textureObjectCount;
 
 // Ubo initialisation
 UBO testCube;
@@ -253,7 +256,7 @@ private:
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-        window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", glfwGetPrimaryMonitor(), nullptr);
+        window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
@@ -1595,7 +1598,8 @@ private:
         }
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            VkDescriptorBufferInfo bufferInfo{};
+            // redundant due to polymorphic implementation below
+            /*VkDescriptorBufferInfo bufferInfo{};
             bufferInfo.buffer = uniformBuffers[i];
             bufferInfo.offset = 0;
             bufferInfo.range = sizeof(UniformBufferObject);
@@ -1608,33 +1612,43 @@ private:
             VkDescriptorImageInfo imageInfo{};
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             imageInfo.imageView = textureImageView;
-            imageInfo.sampler = textureSampler;
+            imageInfo.sampler = textureSampler;*/
 
-            std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+            std::array<VkDescriptorBufferInfo, bufferObjectCount> bufferInfos{};
+            for (size_t j = 0; j < bufferObjectCount; j++) {
+                bufferInfos[j].buffer = uniformBuffers[i];
+                bufferInfos[j].offset = 0;
+                bufferInfos[j].range = sizeof(UniformBufferObject);
+            }
 
-            descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[0].dstSet = descriptorSets[i];
-            descriptorWrites[0].dstBinding = 0;
-            descriptorWrites[0].dstArrayElement = 0;
-            descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            descriptorWrites[0].descriptorCount = 1;
-            descriptorWrites[0].pBufferInfo = &bufferInfo;
+            std::array<VkDescriptorImageInfo, textureObjectCount> imageInfos{};
+            for (size_t j = 0; j < textureObjectCount; j++) {
+                imageInfos[j].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                imageInfos[j].imageView = textureImageView;
+                imageInfos[j].sampler = textureSampler;
+            }
 
-            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[1].dstSet = descriptorSets[i];
-            descriptorWrites[1].dstBinding = 0;
-            descriptorWrites[1].dstArrayElement = 0;
-            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            descriptorWrites[1].descriptorCount = 1;
-            descriptorWrites[1].pBufferInfo = &bufferInfo;
-
-            descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[2].dstSet = descriptorSets[i];
-            descriptorWrites[2].dstBinding = 1;
-            descriptorWrites[2].dstArrayElement = 0;
-            descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            descriptorWrites[2].descriptorCount = 1;
-            descriptorWrites[2].pImageInfo = &imageInfo;
+            std::array<VkWriteDescriptorSet, descriptorWriteTotal> descriptorWrites{};
+            for (size_t j = 0; j < descriptorWriteTotal; j++) {
+                if (j > bufferObjectCount - 1) {
+                    descriptorWrites[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                    descriptorWrites[j].dstSet = descriptorSets[i];
+                    descriptorWrites[j].dstBinding = 1;
+                    descriptorWrites[j].dstArrayElement = 0;
+                    descriptorWrites[j].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                    descriptorWrites[j].descriptorCount = 1;
+                    descriptorWrites[j].pImageInfo = &imageInfos[j - bufferObjectCount];
+                }
+                else {
+                    descriptorWrites[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                    descriptorWrites[j].dstSet = descriptorSets[i];
+                    descriptorWrites[j].dstBinding = 0;
+                    descriptorWrites[j].dstArrayElement = 0;
+                    descriptorWrites[j].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                    descriptorWrites[j].descriptorCount = 1;
+                    descriptorWrites[j].pBufferInfo = &bufferInfos[j];
+                }
+            }
 
             vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         }
@@ -1943,23 +1957,23 @@ private:
         // Gravity
         cameraPos.y -= 2.0f * deltaTime;
         // Area bounds
-        if (cameraPos.y >= 100) {
-            cameraPos.y = 100.0f;
+        if (cameraPos.y >= 50) {
+            cameraPos.y = 50.0f;
         }
-        if (cameraPos.y <= -100) {
-            cameraPos.y = -100.0f;
+        if (cameraPos.y <= -50) {
+            cameraPos.y = -50.0f;
         }
-        if (cameraPos.x >= 100) {
-            cameraPos.x = 100.0f;
+        if (cameraPos.x >= 50) {
+            cameraPos.x = 50.0f;
         }
-        if (cameraPos.x <= -100) {
-            cameraPos.x = -100.0f;
+        if (cameraPos.x <= -50) {
+            cameraPos.x = -50.0f;
         }
-        if (cameraPos.z >= 100) {
-            cameraPos.z = 100.0f;
+        if (cameraPos.z >= 50) {
+            cameraPos.z = 50.0f;
         }
-        if (cameraPos.z <= -100) {
-            cameraPos.z = -100.0f;
+        if (cameraPos.z <= -50) {
+            cameraPos.z = -50.0f;
         }
     }
 
