@@ -22,6 +22,8 @@ bool move_down = false;
 
 bool freecam = false;
 
+bool toggle = false;
+
 float rotation_factor = 50;
 float movement_factor = 20;
 
@@ -154,6 +156,15 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         }
         else {
             freecam = true;
+        }
+    }
+
+    if (key == GLFW_KEY_T && action == GLFW_PRESS) {
+        if (toggle) {
+            toggle = false;
+        }
+        else {
+            toggle = true;
         }
     }
 }
