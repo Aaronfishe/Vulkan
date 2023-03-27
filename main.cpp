@@ -7,6 +7,7 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/hash.hpp"
+#include "glm/gtx/string_cast.hpp"
 
 #include <chrono>
 #include <iostream>
@@ -60,6 +61,7 @@ const std::vector<const char*> deviceExtensions = {
 
 //Array holds all unique objects
 std::vector<EngineObject> objectArray;
+const size_t materialCount = 1;
 size_t uniqueObjectCounter() {
     std::string model_directory = "C:/Users/aaron/CLionProjects/Vulkan/models";
     size_t i = 0;
@@ -75,6 +77,7 @@ size_t uniqueObjectCounter() {
         if (stat(path, &sb) == 0 && !(sb.st_mode & S_IFDIR))
             std::cout << path << std::endl;*/
     }
+    i -= materialCount;
     objectArray.resize(i);
     return i;
 };
@@ -290,6 +293,7 @@ private:
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
             frameTime();
+            processCollision();
             simulationActions();
             drawFrame();
             if (program_shutdown) {
@@ -340,8 +344,8 @@ private:
             vkFreeMemory(device, objectArray[i].vertexBufferMemory, nullptr);
         }
 
-        vkDestroyPipeline(device, graphicsPipeline, nullptr);
-        vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+        /*vkDestroyPipeline(device, graphicsPipeline, nullptr);
+        vkDestroyPipelineLayout(device, pipelineLayout, nullptr);*/
         vkDestroyRenderPass(device, renderPass, nullptr);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT*bufferObjectCount; i++) {
@@ -351,11 +355,11 @@ private:
 
         vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
-        vkDestroySampler(device, textureSampler, nullptr);
+        /*vkDestroySampler(device, textureSampler, nullptr);
         vkDestroyImageView(device, textureImageView, nullptr);
 
         vkDestroyImage(device, textureImage, nullptr);
-        vkFreeMemory(device, textureImageMemory, nullptr);
+        vkFreeMemory(device, textureImageMemory, nullptr);*/
 
         vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
@@ -1645,7 +1649,8 @@ private:
             imageInfo.imageView = textureImageView;
             imageInfo.sampler = textureSampler;*/
 
-            std::array<VkDescriptorBufferInfo, 3> bufferInfos{};
+            std::vector<VkDescriptorBufferInfo> bufferInfos{};
+            bufferInfos.resize(bufferObjectCount);
             for (size_t j = 0; j < objectArray.size(); j++) {
                 bufferInfos[j].buffer = uniformBuffers[i + (inputObject.uniformbufferOffset*MAX_FRAMES_IN_FLIGHT)];
                 bufferInfos[j].offset = 0;
@@ -1659,7 +1664,8 @@ private:
                 imageInfos[j].sampler = inputObject.textureSampler;
             }
 
-            std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
+            std::vector<VkWriteDescriptorSet> descriptorWrites{};
+            descriptorWrites.resize(descriptorWriteTotal);
             for (size_t j = 0; j < descriptorWriteTotal; j++) {
                 if (j > bufferObjectCount - 1) {
                     descriptorWrites[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -1894,12 +1900,12 @@ private:
     }*/
 
     void updateUniformBuffer(uint32_t currentImage) {
-        static auto startTime = std::chrono::high_resolution_clock::now();
+        /*static auto startTime = std::chrono::high_resolution_clock::now();
 
         auto currentTime = std::chrono::high_resolution_clock::now();
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-        /*UniformBufferObject ubo{};
+        UniformBufferObject ubo{};
         if (ubo_first_time) {
             ubo.model = glm::mat4(1.0f);
             ubo_first_time = false;
@@ -1947,28 +1953,28 @@ private:
 
         cameraFront = glm::normalize(front);
 
-        if (rotate_xpos) {
-            objectArray[0].simulationDetails.model = glm::rotate(objectArray[0].simulationDetails.model, glm::radians(-(rotation_speed)), glm::vec3(0.0f, 0.0f, 1.0f));
+        if (trans_xpos) {
+            movementAttempt(3, glm::vec3(movement_speed, 0.0f, 0.0f));
         }
 
-        if (rotate_xneg) {
-            objectArray[0].simulationDetails.model = glm::rotate(objectArray[0].simulationDetails.model, glm::radians(rotation_speed), glm::vec3(0.0f, 0.0f, 1.0f));
+        if (trans_xneg) {
+            movementAttempt(3, glm::vec3(-movement_speed, 0.0f, 0.0f));
         }
 
-        if (rotate_ypos) {
-            objectArray[0].simulationDetails.model = glm::rotate(objectArray[0].simulationDetails.model, glm::radians(-(rotation_speed)), glm::vec3(0.0f, 1.0f, 0.0f));
+        if (trans_ypos) {
+            movementAttempt(3, glm::vec3(0.0f, movement_speed, 0.0f));
         }
 
-        if (rotate_yneg) {
-            objectArray[0].simulationDetails.model = glm::rotate(objectArray[0].simulationDetails.model, glm::radians(rotation_speed), glm::vec3(0.0f, 1.0f, 0.0f));
+        if (trans_yneg) {
+            movementAttempt(3, glm::vec3(0.0f, -movement_speed, 0.0f));
         }
 
-        if (rotate_zpos) {
-            objectArray[0].simulationDetails.model = glm::rotate(objectArray[0].simulationDetails.model, glm::radians(rotation_speed), glm::vec3(1.0f, 0.0f, 0.0f));
+        if (trans_zpos) {
+            movementAttempt(3, glm::vec3(0.0f, 0.0f, movement_speed));
         }
 
-        if (rotate_zneg) {
-            objectArray[0].simulationDetails.model = glm::rotate(objectArray[0].simulationDetails.model, glm::radians(-(rotation_speed)), glm::vec3(1.0f, 0.0f, 0.0f));
+        if (trans_zneg) {
+            movementAttempt(3, glm::vec3(0.0f, 0.0f, -movement_speed));
         }
 // multiply movement by camerafront for freecam or multiply by camerafront_movement to exclude y-axis from camera facing movement
         if (move_forward) {
@@ -2032,19 +2038,33 @@ private:
     }
 
     void initObject() {
+        // Path initialisation
         testCube.MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/himothy.obj";
         testCube.TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/himothy.png";
         shell.MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/common_cockle.obj";
         shell.TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/common_cockle.jpg";
         vikingRoom.MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/viking_room.obj";
         vikingRoom.TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/viking_room.png";
+        himothy.MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/himmm.obj";
+        himothy.TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/image2.jpg";
+        // Buffer offsets
         testCube.uniformbufferOffset = 0;
         shell.uniformbufferOffset = 1;
         vikingRoom.uniformbufferOffset = 2;
+        himothy.uniformbufferOffset = 3;
 
+        // Collision
+        testCube.collision.size = glm::vec3(5.0f, 5.0f, 5.0f);
+        shell.collision.size = glm::vec3(5.0f, 5.0f, 5.0f);
+        vikingRoom.collision.size = glm::vec3(5.0f, 5.0f, 5.0f);
+        himothy.collision.size = glm::vec3(5.0f, 5.0f, 5.0f);
+
+
+        // Transfer to object array
         objectArray[0] = testCube;
         objectArray[1] = shell;
         objectArray[2] = vikingRoom;
+        objectArray[3] = himothy;
 
         for (size_t i = 0; i < (objectArray.size()); i++) {
             objectArray[i].simulationDetails.model = glm::mat4(1.0f);
@@ -2052,9 +2072,9 @@ private:
 
         objectArray[1].simulationDetails.model = glm::translate(objectArray[1].simulationDetails.model, glm::vec3(0.0,5.0,0.0));
         objectArray[2].simulationDetails.model = glm::translate(objectArray[2].simulationDetails.model, glm::vec3(0.0,10.0,0.0));
-        objectArray[0].simulationDetails.model = glm::scale(objectArray[0].simulationDetails.model, glm::vec3(5.0,1.0,1.0));
         objectArray[2].simulationDetails.model = glm::scale(objectArray[2].simulationDetails.model, glm::vec3(5.0,5.0,5.0));
-
+        objectArray[2].simulationDetails.model = glm::rotate(objectArray[2].simulationDetails.model, glm::radians(-90.0f), glm::vec3(1.0,0.0,0.0));
+        objectArray[3].simulationDetails.model = glm::translate(objectArray[3].simulationDetails.model, glm::vec3(0.0, -10.0, 0.0));
     }
 
     void simulationActions() {
@@ -2078,6 +2098,28 @@ private:
         }
         if (cameraPos.z <= -50) {
             cameraPos.z = -50.0f;
+        }
+    }
+
+    bool movementAttempt (size_t objectArrayValue, glm::vec3 movementQuantity) {
+        objectArray[objectArrayValue].simulationDetails.model = glm::translate(objectArray[objectArrayValue].simulationDetails.model, movementQuantity);
+        objectArray[objectArrayValue].collision.position = objectArray[objectArrayValue].simulationDetails.model * glm::vec4(1.0f);
+
+        for (size_t i = 0; i < objectArray.size(); i++) {
+            if (checkCollision(objectArray[objectArrayValue].collision, objectArray[i].collision)) {
+                if (i != objectArrayValue) {
+                    objectArray[objectArrayValue].simulationDetails.model = glm::translate(objectArray[objectArrayValue].simulationDetails.model, -movementQuantity);
+                    objectArray[objectArrayValue].collision.position = objectArray[objectArrayValue].simulationDetails.model * glm::vec4(1.0f);
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    void processCollision() {
+        for (size_t i = 0; i < objectArray.size(); i++) {
+            objectArray[i].collision.position = objectArray[i].simulationDetails.model * glm::vec4(1.0f);
         }
     }
 

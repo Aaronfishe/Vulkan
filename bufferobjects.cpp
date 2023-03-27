@@ -57,6 +57,7 @@ struct UniformBufferObject {
 
 class EngineObject{
 public:
+    PhysicalObject collision;
     UniformBufferObject simulationDetails;
     std::string MODEL_PATH;
     std::string TEXTURE_PATH;

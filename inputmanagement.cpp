@@ -2,14 +2,14 @@
 bool program_shutdown = false;
 
 // rotation and translation variables
-bool rotate_xpos = false;
-bool rotate_xneg = false;
+bool trans_xneg = false;
+bool trans_xpos = false;
 
-bool rotate_ypos = false;
-bool rotate_yneg = false;
+bool trans_ypos = false;
+bool trans_yneg = false;
 
-bool rotate_zpos = false;
-bool rotate_zneg = false;
+bool trans_zpos = false;
+bool trans_zneg = false;
 
 bool move_forward = false;
 bool move_backward = false;
@@ -28,7 +28,7 @@ float rotation_factor = 50;
 float movement_factor = 20;
 
 glm::mat4 store_rotation;
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 10.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 bool ubo_first_time = true;
@@ -51,51 +51,51 @@ float lastFrameTime = 0.0f;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     // rotate x
     if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
-        rotate_xpos = true;
+        trans_xneg = true;
     }
 
     if (key == GLFW_KEY_LEFT && action == GLFW_RELEASE) {
-        rotate_xpos = false;
+        trans_xneg = false;
     }
 
     if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS) {
-        rotate_xneg = true;
+        trans_xpos = true;
     }
 
     if (key == GLFW_KEY_RIGHT && action == GLFW_RELEASE) {
-        rotate_xneg = false;
+        trans_xpos = false;
     }
     // rotate y
     if (key == GLFW_KEY_UP && action == GLFW_PRESS) {
-        rotate_ypos = true;
+        trans_zneg = true;
     }
 
     if (key == GLFW_KEY_UP && action == GLFW_RELEASE) {
-        rotate_ypos = false;
+        trans_zneg = false;
     }
 
     if (key == GLFW_KEY_DOWN && action == GLFW_PRESS) {
-        rotate_yneg = true;
+        trans_zpos = true;
     }
 
     if (key == GLFW_KEY_DOWN && action == GLFW_RELEASE) {
-        rotate_yneg = false;
+        trans_zpos = false;
     }
     // rotate z
-    if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
-        rotate_zpos = true;
+    if (key == GLFW_KEY_I && action == GLFW_PRESS) {
+        trans_ypos = true;
     }
 
-    if (key == GLFW_KEY_Q && action == GLFW_RELEASE) {
-        rotate_zpos = false;
+    if (key == GLFW_KEY_I && action == GLFW_RELEASE) {
+        trans_ypos = false;
     }
 
-    if (key == GLFW_KEY_E && action == GLFW_PRESS) {
-        rotate_zneg = true;
+    if (key == GLFW_KEY_K && action == GLFW_PRESS) {
+        trans_yneg = true;
     }
 
-    if (key == GLFW_KEY_E && action == GLFW_RELEASE) {
-        rotate_zneg = false;
+    if (key == GLFW_KEY_K && action == GLFW_RELEASE) {
+        trans_yneg = false;
     }
     // Z translation
     if (key == GLFW_KEY_D && action == GLFW_PRESS) {
