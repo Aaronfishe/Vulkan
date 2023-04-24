@@ -1,4 +1,4 @@
-EngineObject testCube;
-EngineObject shell;
-EngineObject vikingRoom;
 EngineObject himothy;
+EngineObject ground;
+EngineObject cube;
+EngineObject cube2;

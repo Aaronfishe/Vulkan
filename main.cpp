@@ -46,10 +46,6 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 const uint32_t WIDTH = 1920;
 const uint32_t HEIGHT = 1080;
 
-// Model and texture paths
-const std::string MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/viking_room.obj";
-const std::string TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/viking_room.png";
-
 // Defining validation layers
 const std::vector<const char*> validationLayers = {
         "VK_LAYER_KHRONOS_validation"
@@ -61,7 +57,7 @@ const std::vector<const char*> deviceExtensions = {
 
 //Array holds all unique objects
 std::vector<EngineObject> objectArray;
-const size_t materialCount = 1;
+const size_t materialCount = 4;
 size_t uniqueObjectCounter() {
     std::string model_directory = "C:/Users/aaron/CLionProjects/Vulkan/models";
     size_t i = 0;
@@ -1819,6 +1815,8 @@ private:
         float currentFrameTime = glfwGetTime();
         deltaTime = currentFrameTime - lastFrameTime;
         lastFrameTime = currentFrameTime;
+        //prints the framerate into the console
+        //std::cout << 1/deltaTime << "\n";
     }
 
 
@@ -1954,27 +1952,29 @@ private:
         cameraFront = glm::normalize(front);
 
         if (trans_xpos) {
-            movementAttempt(3, glm::vec3(movement_speed, 0.0f, 0.0f));
+            movementAttempt(1, glm::vec3(movement_factor, 0.0f, 0.0f));
         }
 
         if (trans_xneg) {
-            movementAttempt(3, glm::vec3(-movement_speed, 0.0f, 0.0f));
+            movementAttempt(1, glm::vec3(-movement_factor, 0.0f, 0.0f));
         }
 
         if (trans_ypos) {
-            movementAttempt(3, glm::vec3(0.0f, movement_speed, 0.0f));
+            if (objectArray[1].collision.position_offset.y - objectArray[1].collision.size.y >= objectArray[0].collision.position_offset.y + objectArray[0].collision.size.y) {
+                objectArray[1].movement.velocity.y = 15;
+            }
         }
 
         if (trans_yneg) {
-            movementAttempt(3, glm::vec3(0.0f, -movement_speed, 0.0f));
+            movementAttempt(1, glm::vec3(0.0f, -movement_factor, 0.0f));
         }
 
         if (trans_zpos) {
-            movementAttempt(3, glm::vec3(0.0f, 0.0f, movement_speed));
+            movementAttempt(1, glm::vec3(0.0f, 0.0f, movement_factor));
         }
 
         if (trans_zneg) {
-            movementAttempt(3, glm::vec3(0.0f, 0.0f, -movement_speed));
+            movementAttempt(1, glm::vec3(0.0f, 0.0f, -movement_factor));
         }
 // multiply movement by camerafront for freecam or multiply by camerafront_movement to exclude y-axis from camera facing movement
         if (move_forward) {
@@ -2039,47 +2039,49 @@ private:
 
     void initObject() {
         // Path initialisation
-        testCube.MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/himothy.obj";
-        testCube.TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/himothy.png";
-        shell.MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/common_cockle.obj";
-        shell.TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/common_cockle.jpg";
-        vikingRoom.MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/viking_room.obj";
-        vikingRoom.TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/viking_room.png";
-        himothy.MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/himmm.obj";
-        himothy.TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/image2.jpg";
+        ground.MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/ground.obj";
+        ground.TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/ground.png";
+        himothy.MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/himothy.obj";
+        himothy.TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/himothy.png";
+        cube.MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/cube.obj";
+        cube.TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/cube.png";
+        cube2.MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/cube2.obj";
+        cube2.TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/cube2.png";
         // Buffer offsets
-        testCube.uniformbufferOffset = 0;
-        shell.uniformbufferOffset = 1;
-        vikingRoom.uniformbufferOffset = 2;
-        himothy.uniformbufferOffset = 3;
+        ground.uniformbufferOffset = 0;
+        himothy.uniformbufferOffset = 1;
+        cube.uniformbufferOffset = 2;
+        cube2.uniformbufferOffset = 3;
 
         // Collision
-        testCube.collision.size = glm::vec3(5.0f, 5.0f, 5.0f);
-        shell.collision.size = glm::vec3(5.0f, 5.0f, 5.0f);
-        vikingRoom.collision.size = glm::vec3(5.0f, 5.0f, 5.0f);
-        himothy.collision.size = glm::vec3(5.0f, 5.0f, 5.0f);
+        ground.collision.size = glm::vec3(1000.0f, 0.5f, 1000.0f);
+        himothy.collision.size = glm::vec3(1.0f, 1.0f, 1.0f);
+        cube.collision.size= glm::vec3(0.8f);
+        cube2.collision.size= glm::vec3(0.8f);
 
 
         // Transfer to object array
-        objectArray[0] = testCube;
-        objectArray[1] = shell;
-        objectArray[2] = vikingRoom;
-        objectArray[3] = himothy;
+        objectArray[0] = ground;
+        objectArray[1] = himothy;
+        objectArray[2] = cube;
+        objectArray[3] = cube2;
 
         for (size_t i = 0; i < (objectArray.size()); i++) {
             objectArray[i].simulationDetails.model = glm::mat4(1.0f);
         }
 
-        objectArray[1].simulationDetails.model = glm::translate(objectArray[1].simulationDetails.model, glm::vec3(0.0,5.0,0.0));
-        objectArray[2].simulationDetails.model = glm::translate(objectArray[2].simulationDetails.model, glm::vec3(0.0,10.0,0.0));
-        objectArray[2].simulationDetails.model = glm::scale(objectArray[2].simulationDetails.model, glm::vec3(5.0,5.0,5.0));
-        objectArray[2].simulationDetails.model = glm::rotate(objectArray[2].simulationDetails.model, glm::radians(-90.0f), glm::vec3(1.0,0.0,0.0));
-        objectArray[3].simulationDetails.model = glm::translate(objectArray[3].simulationDetails.model, glm::vec3(0.0, -10.0, 0.0));
+        for (size_t i = 0; i < objectArray.size(); i++) {
+            objectArray[i].collision.position = objectArray[i].simulationDetails.model * glm::vec4(1.0f);
+        }
+
+        objectArray[0].simulationDetails.model = glm::translate(objectArray[0].simulationDetails.model, glm::vec3(0.0f, -50.0f, 0.0f));
+        objectArray[0].simulationDetails.model = glm::scale(objectArray[0].simulationDetails.model, glm::vec3(100.0f, 10.0f, 100.0f));
+        objectArray[2].simulationDetails.model = glm::translate(objectArray[2].simulationDetails.model, glm::vec3(10.0f, -30.0f, 0.0f));
+        objectArray[3].simulationDetails.model = glm::translate(objectArray[3].simulationDetails.model, glm::vec3(20.0f, -20.0f, 0.0f));
+
     }
 
     void simulationActions() {
-        // Gravity
-        //cameraPos.y -= 2.0f * deltaTime;
         // Area bounds
         if (cameraPos.y >= 50) {
             cameraPos.y = 50.0f;
@@ -2099,17 +2101,142 @@ private:
         if (cameraPos.z <= -50) {
             cameraPos.z = -50.0f;
         }
+
+        //movementAttempt(1, glm::vec3(0.0f, -(movement_factor * deltaTime), 0.0f));
+        objectArray[1].movement.acceleration.y -= (0.05 * deltaTime);
+        objectArray[1].movement.velocity = update_velcoity(objectArray[1].movement.velocity, objectArray[1].movement.acceleration);
+        movementAttempt(1, objectArray[1].movement.velocity);
+
+        if (reset) {
+            objectArray[1].simulationDetails.model = glm::mat4(1.0f);
+            reset = false;
+        }
+
     }
 
     bool movementAttempt (size_t objectArrayValue, glm::vec3 movementQuantity) {
-        objectArray[objectArrayValue].simulationDetails.model = glm::translate(objectArray[objectArrayValue].simulationDetails.model, movementQuantity);
-        objectArray[objectArrayValue].collision.position = objectArray[objectArrayValue].simulationDetails.model * glm::vec4(1.0f);
+        std::vector<std::vector<bool>> beforeCollisionArray;
+        beforeCollisionArray.resize(objectArray.size());
+        movementQuantity = movementQuantity*deltaTime;
 
         for (size_t i = 0; i < objectArray.size(); i++) {
-            if (checkCollision(objectArray[objectArrayValue].collision, objectArray[i].collision)) {
+            beforeCollisionArray[i].resize(3);
+            std::vector<bool> collisionTemp;
+            collisionTemp.resize(6);
+            collisionTemp = checkCollision(objectArray[objectArrayValue].collision,objectArray[i].collision);
+            collisionTemp[0] = collisionTemp[0] && collisionTemp[3];
+            collisionTemp[1] = collisionTemp[1] && collisionTemp[4];
+            collisionTemp[2] = collisionTemp[2] && collisionTemp[5];
+
+            beforeCollisionArray[i][0] = collisionTemp[0];
+            beforeCollisionArray[i][1] = collisionTemp[1];
+            beforeCollisionArray[i][2] = collisionTemp[2];
+
+        }
+
+        objectArray[objectArrayValue].simulationDetails.model = glm::translate(objectArray[objectArrayValue].simulationDetails.model, movementQuantity);
+        updatePosition(objectArrayValue);
+
+        for (size_t i = 0; i < objectArray.size(); i++) {
+            //first 3 values of the array are x,y,z on the positive axis, with the next 3 being the negative axes
+            std::vector <bool> collisionArray = checkCollision(objectArray[objectArrayValue].collision, objectArray[i].collision);
+            collisionArray[0] = collisionArray[0] && collisionArray[3];
+            collisionArray[1] = collisionArray[1] && collisionArray[4];
+            collisionArray[2] = collisionArray[2] && collisionArray[5];
+
+            if (collisionArray[0] && collisionArray[1] && collisionArray[2]) {
                 if (i != objectArrayValue) {
-                    objectArray[objectArrayValue].simulationDetails.model = glm::translate(objectArray[objectArrayValue].simulationDetails.model, -movementQuantity);
-                    objectArray[objectArrayValue].collision.position = objectArray[objectArrayValue].simulationDetails.model * glm::vec4(1.0f);
+                    auto adjustment = glm::vec3(0.0f);
+                    float surfaceAdjustmentFactor = 0.001;
+
+                    bool xpos = false;
+                    bool xneg = false;
+                    bool ypos = false;
+                    bool yneg = false;
+                    bool zpos = false;
+                    bool zneg = false;
+
+                    if (collisionArray[0] != beforeCollisionArray[i][0]){
+
+                        if (movementQuantity.x > 0) {
+                            adjustment.x = (objectArray[i].collision.position_offset.x - objectArray[i].collision.size.x) - (objectArray[objectArrayValue].collision.position_offset.x + objectArray[objectArrayValue].collision.size.x);
+                            objectArray[objectArrayValue].movement.velocity.x = 0;
+                            objectArray[objectArrayValue].movement.acceleration.x = 0;
+                            xpos = true;
+                        }
+
+                        if (movementQuantity.x < 0) {
+                            adjustment.x = (objectArray[i].collision.position_offset.x + objectArray[i].collision.size.x) - (objectArray[objectArrayValue].collision.position_offset.x - objectArray[objectArrayValue].collision.size.x);
+                            objectArray[objectArrayValue].movement.velocity.x = 0;
+                            objectArray[objectArrayValue].movement.acceleration.x = 0;
+                            xneg = true;
+                        }
+                    }
+
+                    if (collisionArray[1] != beforeCollisionArray[i][1]){
+                        if (movementQuantity.y > 0) {
+                            adjustment.y = (objectArray[i].collision.position_offset.y - objectArray[i].collision.size.y) - (objectArray[objectArrayValue].collision.position_offset.y + objectArray[objectArrayValue].collision.size.y);
+                            objectArray[objectArrayValue].movement.velocity.y = 0;
+                            objectArray[objectArrayValue].movement.acceleration.y = 0;
+                            ypos = true;
+                        }
+
+                        if (movementQuantity.y < 0) {
+                            adjustment.y = (objectArray[i].collision.position_offset.y + objectArray[i].collision.size.y) - (objectArray[objectArrayValue].collision.position_offset.y - objectArray[objectArrayValue].collision.size.y);
+                            objectArray[objectArrayValue].movement.velocity.y = 0;
+                            objectArray[objectArrayValue].movement.acceleration.y = 0;
+                            yneg = true;
+                        }
+                    }
+
+                    if (collisionArray[2] != beforeCollisionArray[i][2]){
+                        if (movementQuantity.z > 0) {
+                            adjustment.z = (objectArray[i].collision.position_offset.z - objectArray[i].collision.size.z) - (objectArray[objectArrayValue].collision.position_offset.z + objectArray[objectArrayValue].collision.size.z);
+                            objectArray[objectArrayValue].movement.velocity.z = 0;
+                            objectArray[objectArrayValue].movement.acceleration.z = 0;
+                            zpos = true;
+                        }
+
+                        if (movementQuantity.z < 0) {
+                            adjustment.z = (objectArray[i].collision.position_offset.z + objectArray[i].collision.size.z) - (objectArray[objectArrayValue].collision.position_offset.z - objectArray[objectArrayValue].collision.size.z);
+                            objectArray[objectArrayValue].movement.velocity.z = 0;
+                            objectArray[objectArrayValue].movement.acceleration.z = 0;
+                            zneg = true;
+                        }
+                    }
+
+                    objectArray[objectArrayValue].simulationDetails.model = glm::translate(objectArray[objectArrayValue].simulationDetails.model, adjustment);
+                    updatePosition(objectArrayValue);
+
+                    if (xpos) {
+                        adjustment.x -= surfaceAdjustmentFactor;
+                    }
+
+                    if (xneg) {
+                        adjustment.x += surfaceAdjustmentFactor;
+                    }
+
+                    if (ypos) {
+                        adjustment.y -= surfaceAdjustmentFactor;
+                    }
+
+                    if (yneg) {
+                        adjustment.y += surfaceAdjustmentFactor;
+                    }
+
+                    if (zpos) {
+                        adjustment.z -= surfaceAdjustmentFactor;
+                    }
+
+                    if (zneg) {
+                        adjustment.z += surfaceAdjustmentFactor;
+                    }
+
+                    objectArray[objectArrayValue].simulationDetails.model = glm::translate(objectArray[objectArrayValue].simulationDetails.model, adjustment);
+                    updatePosition(objectArrayValue);
+
+                    //std::vector <bool> test = checkCollision(objectArray[objectArrayValue].collision, objectArray[i].collision);
+
                     return false;
                 }
             }
@@ -2119,8 +2246,13 @@ private:
 
     void processCollision() {
         for (size_t i = 0; i < objectArray.size(); i++) {
-            objectArray[i].collision.position = objectArray[i].simulationDetails.model * glm::vec4(1.0f);
+            updatePosition(i);
         }
+    }
+
+    void updatePosition(size_t arrayPosition) {
+        objectArray[arrayPosition].collision.position = objectArray[arrayPosition].simulationDetails.model * glm::vec4(1.0f);
+        objectArray[arrayPosition].collision.position_offset = objectArray[arrayPosition].collision.position; //glm::vec3(((objectArray[arrayPosition].collision.position.x + objectArray[arrayPosition].collision.size.x) / 2), ((objectArray[arrayPosition].collision.position.y + objectArray[arrayPosition].collision.size.y) / 2), ((objectArray[arrayPosition].collision.position.z + objectArray[arrayPosition].collision.size.z) / 2));
     }
 
     std::vector<const char*> getRequiredExtensions(){

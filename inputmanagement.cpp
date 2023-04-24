@@ -24,11 +24,13 @@ bool freecam = false;
 
 bool toggle = false;
 
+bool reset = false;
+
 float rotation_factor = 50;
 float movement_factor = 20;
 
 glm::mat4 store_rotation;
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 10.0f);
+glm::vec3 cameraPos = glm::vec3(0.0f, -30.0f, 10.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 bool ubo_first_time = true;
@@ -166,6 +168,10 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         else {
             toggle = true;
         }
+    }
+
+    if (key== GLFW_KEY_R && action == GLFW_PRESS) {
+        reset = true;
     }
 }
 

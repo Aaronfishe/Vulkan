@@ -6,7 +6,7 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libstdc++ -static-libgcc -stati
 
 find_package(Vulkan REQUIRED)
 
-add_executable(Vulkan idk.cpp)
+add_executable(Vulkan main.cpp)
 
 target_sources(Vulkan PRIVATE main.cpp)
 

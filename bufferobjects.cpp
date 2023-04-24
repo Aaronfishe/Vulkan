@@ -1,3 +1,4 @@
+#include "movement.cpp"
 
 struct Vertex{
     glm::vec3 pos;
@@ -57,6 +58,7 @@ struct UniformBufferObject {
 
 class EngineObject{
 public:
+    movement movement;
     PhysicalObject collision;
     UniformBufferObject simulationDetails;
     std::string MODEL_PATH;
