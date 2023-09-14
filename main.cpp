@@ -1,5 +1,6 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#define NDEBUG
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -415,9 +416,9 @@ private:
 // Defining info for driver compatibility
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = "Hello Triangle";
+        appInfo.pApplicationName = "Vulkan test";
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.pEngineName = "No Engine";
+        appInfo.pEngineName = "Engine";
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.apiVersion = VK_API_VERSION_1_0;
 
@@ -1960,8 +1961,10 @@ private:
         }
 
         if (trans_ypos) {
-            if (objectArray[1].collision.position_offset.y - objectArray[1].collision.size.y >= objectArray[0].collision.position_offset.y + objectArray[0].collision.size.y) {
-                objectArray[1].movement.velocity.y = 15;
+            if (objectArray[1].movement.jump) {
+                objectArray[1].movement.velocity.y = 30;
+                objectArray[1].movement.acceleration.y = 0;
+                objectArray[1].movement.jump = false;
             }
         }
 
@@ -2041,28 +2044,28 @@ private:
         // Path initialisation
         ground.MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/ground.obj";
         ground.TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/ground.png";
-        himothy.MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/himothy.obj";
-        himothy.TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/himothy.png";
+        player.MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/test_player.obj";
+        player.TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/test_player.png";
         cube.MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/cube.obj";
         cube.TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/cube.png";
         cube2.MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/cube2.obj";
         cube2.TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/cube2.png";
         // Buffer offsets
         ground.uniformbufferOffset = 0;
-        himothy.uniformbufferOffset = 1;
+        player.uniformbufferOffset = 1;
         cube.uniformbufferOffset = 2;
         cube2.uniformbufferOffset = 3;
 
         // Collision
-        ground.collision.size = glm::vec3(1000.0f, 0.5f, 1000.0f);
-        himothy.collision.size = glm::vec3(1.0f, 1.0f, 1.0f);
+        ground.collision.size = glm::vec3(1000.0f, 0.8f, 1000.0f);
+        player.collision.size = glm::vec3(1.0f, 1.0f, 1.0f);
         cube.collision.size= glm::vec3(0.8f);
         cube2.collision.size= glm::vec3(0.8f);
 
 
         // Transfer to object array
         objectArray[0] = ground;
-        objectArray[1] = himothy;
+        objectArray[1] = player;
         objectArray[2] = cube;
         objectArray[3] = cube2;
 
@@ -2103,12 +2106,14 @@ private:
         }
 
         //movementAttempt(1, glm::vec3(0.0f, -(movement_factor * deltaTime), 0.0f));
-        objectArray[1].movement.acceleration.y -= (0.05 * deltaTime);
-        objectArray[1].movement.velocity = update_velcoity(objectArray[1].movement.velocity, objectArray[1].movement.acceleration);
+        objectArray[1].movement.acceleration.y -= 0.75*deltaTime;
+        objectArray[1].movement.velocity = (update_velcoity(objectArray[1].movement.velocity, objectArray[1].movement.acceleration));
         movementAttempt(1, objectArray[1].movement.velocity);
 
         if (reset) {
             objectArray[1].simulationDetails.model = glm::mat4(1.0f);
+            objectArray[1].movement.velocity.y = 0;
+            objectArray[1].movement.acceleration.y = 0;
             reset = false;
         }
 
@@ -2186,6 +2191,9 @@ private:
                             objectArray[objectArrayValue].movement.velocity.y = 0;
                             objectArray[objectArrayValue].movement.acceleration.y = 0;
                             yneg = true;
+                            if (objectArrayValue == 1) {
+                                objectArray[1].movement.jump = true;
+                            }
                         }
                     }
 
@@ -2208,31 +2216,33 @@ private:
                     objectArray[objectArrayValue].simulationDetails.model = glm::translate(objectArray[objectArrayValue].simulationDetails.model, adjustment);
                     updatePosition(objectArrayValue);
 
+                    auto surfaceAdjustment = glm::vec3(0);
+
                     if (xpos) {
-                        adjustment.x -= surfaceAdjustmentFactor;
+                        surfaceAdjustment.x = -surfaceAdjustmentFactor;
                     }
 
                     if (xneg) {
-                        adjustment.x += surfaceAdjustmentFactor;
+                        surfaceAdjustment.x = surfaceAdjustmentFactor;
                     }
 
                     if (ypos) {
-                        adjustment.y -= surfaceAdjustmentFactor;
+                        surfaceAdjustment.y = -surfaceAdjustmentFactor;
                     }
 
                     if (yneg) {
-                        adjustment.y += surfaceAdjustmentFactor;
+                        surfaceAdjustment.y = surfaceAdjustmentFactor;
                     }
 
                     if (zpos) {
-                        adjustment.z -= surfaceAdjustmentFactor;
+                        surfaceAdjustment.z = -surfaceAdjustmentFactor;
                     }
 
                     if (zneg) {
-                        adjustment.z += surfaceAdjustmentFactor;
+                        surfaceAdjustment.z = surfaceAdjustmentFactor;
                     }
 
-                    objectArray[objectArrayValue].simulationDetails.model = glm::translate(objectArray[objectArrayValue].simulationDetails.model, adjustment);
+                    objectArray[objectArrayValue].simulationDetails.model = glm::translate(objectArray[objectArrayValue].simulationDetails.model, surfaceAdjustment);
                     updatePosition(objectArrayValue);
 
                     //std::vector <bool> test = checkCollision(objectArray[objectArrayValue].collision, objectArray[i].collision);
