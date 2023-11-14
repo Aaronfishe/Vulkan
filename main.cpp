@@ -2042,14 +2042,7 @@ private:
 
     void initObject() {
         // Path initialisation
-        ground.MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/ground.obj";
-        ground.TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/ground.png";
-        player.MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/test_player.obj";
-        player.TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/test_player.png";
-        cube.MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/cube.obj";
-        cube.TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/cube.png";
-        cube2.MODEL_PATH = "C:/Users/aaron/CLionProjects/Vulkan/models/cube2.obj";
-        cube2.TEXTURE_PATH = "C:/Users/aaron/CLionProjects/Vulkan/textures/cube2.png";
+        setObjectPath();
         // Buffer offsets
         ground.uniformbufferOffset = 0;
         player.uniformbufferOffset = 1;
@@ -2084,6 +2077,7 @@ private:
 
     }
 
+    // Scene logic goes here
     void simulationActions() {
         // Area bounds
         if (cameraPos.y >= 50) {
@@ -2105,11 +2099,12 @@ private:
             cameraPos.z = -50.0f;
         }
 
-        //movementAttempt(1, glm::vec3(0.0f, -(movement_factor * deltaTime), 0.0f));
+        // Jumping for the player
         objectArray[1].movement.acceleration.y -= 0.75*deltaTime;
         objectArray[1].movement.velocity = (update_velcoity(objectArray[1].movement.velocity, objectArray[1].movement.acceleration));
         movementAttempt(1, objectArray[1].movement.velocity);
 
+        // Simulation reset
         if (reset) {
             objectArray[1].simulationDetails.model = glm::mat4(1.0f);
             objectArray[1].movement.velocity.y = 0;
