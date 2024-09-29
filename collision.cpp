@@ -1,12 +1,12 @@
-
+//collision struct
 struct PhysicalObject {
     glm::vec4 position = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
     glm::vec3 size = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 position_offset = glm::vec3(0.0f);
 };
-
+//collision checking function
 std::vector <bool> checkCollision(PhysicalObject obj1, PhysicalObject obj2) {
-    // pos or neg is in reference to obj1's axes
+//pos or neg is in reference to obj1's axes
 
     bool obj1_collisionXpos = obj1.position_offset.x + obj1.size.x >= obj2.position_offset.x - obj2.size.x;
 

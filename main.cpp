@@ -33,10 +33,10 @@
 #include "bufferobjects.cpp"
 #include "inputmanagement.cpp"
 #include "objects.cpp"
-
+//texture loader
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
-
+//model loader
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "object_loader/tiny_obj_loader.h"
 
@@ -56,14 +56,14 @@ const std::vector<const char*> deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-//Array holds all unique objects
+//array holds all unique objects
 std::vector<EngineObject> objectArray;
 const size_t materialCount = 4;
 size_t uniqueObjectCounter() {
     std::string model_directory = "C:/Users/aaron/CLionProjects/Vulkan/models";
     size_t i = 0;
     struct stat sb;
-/// resizing object array for the number of unique objects in the model directory
+//resizing object array for the number of unique objects in the model directory
     for (const auto& entry : std::filesystem::directory_iterator(model_directory)) {
         i++;
         // Check model directory for model files, can be adapted to load any object inserted into the directory
@@ -78,13 +78,14 @@ size_t uniqueObjectCounter() {
     objectArray.resize(i);
     return i;
 };
+//variables for handling engine objects
 const size_t uniqueObjectCount = uniqueObjectCounter();
 const size_t bufferObjectCount = objectArray.size();
 const size_t textureObjectCount = 1;
 const size_t descriptorWriteTotal = bufferObjectCount + textureObjectCount;
 
 
-// File loading system
+//file loading system
 
 static std::vector<char> readFile(const std::string& filename) {
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
@@ -103,13 +104,14 @@ static std::vector<char> readFile(const std::string& filename) {
     return buffer;
 }
 
-// Setting whether validation should be bypassed or not due to debug mode
+//setting whether validation should be bypassed or not due to debug mode
 #ifdef NDEBUG
     const bool enableValidationLayers = false;
 #else
     const bool enableValidationLayers = true;
 #endif
 
+//defining the vulkan debug messenger to receive errors and provide responses
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator,
     VkDebugUtilsMessengerEXT* pDebugMessenger) {
     auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
@@ -120,6 +122,7 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMes
     }
 }
 
+//debug messenger cleanup
 void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
                                    const VkAllocationCallbacks* pAllocator) {
     auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)
@@ -129,6 +132,7 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
     }
 }
 
+//struct for which graphics family and presentation family a particular device or swapchain may have
 struct QueueFamilyIndices{
     std::optional<uint32_t> graphicsFamily;
     std::optional<uint32_t> presentFamily;
@@ -143,7 +147,7 @@ std::vector<uint32_t> indices;
 
 // Definition for rendering main system
 class VulkanEngine {
-// public classes
+// public class members
 public:
     void run() {
         initWindow();
@@ -153,33 +157,32 @@ public:
     }
 //private class members
 private:
-
+//window
     GLFWwindow* window;
-
+//debugger
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
     VkSurfaceKHR surface;
-
+//devices
     VkDevice device;
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-
+//queues
     VkQueue graphicsQueue;
     VkQueue presentQueue;
-
+//swapchain
     VkSwapchainKHR swapChain;
     std::vector<VkImage> swapChainImages;
     VkFormat swapChainImageFormat;
     VkExtent2D swapChainExtent;
-
     std::vector<VkImageView> swapChainImageViews;
-
+//pipeline
     VkRenderPass renderPass;
     VkDescriptorSetLayout descriptorSetLayout;
     VkPipelineLayout pipelineLayout;
     VkPipelineLayout pipelineLayout2;
     VkPipeline graphicsPipeline;
     VkPipeline graphicsPipeline2;
-
+//framebuffer
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
 // Command buffer
@@ -201,19 +204,18 @@ private:
 // Index buffer
     VkBuffer indexBuffer;
     VkDeviceMemory indexBufferMemory;
-
+//uniform buffers
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
     std::vector<void*> uniformBuffersMapped;
-
+//descriptors
     VkDescriptorPool descriptorPool;
     std::vector<VkDescriptorSet> descriptorSets;
     std::vector<VkDescriptorSet> descriptorSets2;
-
+//texture image
     uint32_t mipLevels;
     VkImage textureImage;
     VkDeviceMemory textureImageMemory;
-
     VkImageView textureImageView;
     VkSampler textureSampler;
 
@@ -240,12 +242,12 @@ private:
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
     }
-
+//used to inform the framebuffer to recreate the swapchain when the window is resized
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height){
         auto app = reinterpret_cast<VulkanEngine*>(glfwGetWindowUserPointer(window));
         app->framebufferResized = true;
     }
-
+//engine initialisation
     void initVulkan() {
         createInstance();
         setupDebugMessenger();
@@ -267,6 +269,7 @@ private:
         createIndexBuffer();*/
         createUniformBuffers();
         createDescriptorPool();
+//iterated for each object
         for (size_t i = 0; i < uniqueObjectCount; i++) {
             objectArray[i] = loadModel(objectArray[i]);
             objectArray[i] = createVertexBuffer(objectArray[i]);
@@ -285,7 +288,7 @@ private:
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
 
-    // Controls main function
+//controls main function which repeats until shutdown
     void mainLoop() {
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
@@ -293,6 +296,7 @@ private:
             processCollision();
             simulationActions();
             drawFrame();
+//breaking the loop early for manual control over closing
             if (program_shutdown) {
                 break;
             }
@@ -301,7 +305,7 @@ private:
         vkDeviceWaitIdle(device);
     }
 
-// Swapchain specific cleanup for use during operation and for shutdown
+//swapchain specific cleanup for use during operation and for shutdown
     void cleanupSwapChain() {
         vkDestroyImageView(device, colorImageView, nullptr);
         vkDestroyImage(device, colorImage, nullptr);
@@ -322,10 +326,11 @@ private:
 
     }
 
-    // Memory management upon shutdown
+//memory management upon shutdown
     void cleanup() {
         cleanupSwapChain();
 
+//cleanup for individual parts has been replaced with an iterative loop for each object
         for (size_t i = 0; i < objectArray.size(); i++) {
             vkDestroyPipeline(device, objectArray[i].graphicsPipeline, nullptr);
             vkDestroyPipelineLayout(device, objectArray[i].pipelineLayout, nullptr);
@@ -388,7 +393,7 @@ private:
         glfwTerminate();
     }
 
-
+//recreates necessary parts of the swapchain when it is deemed suboptimal
     void recreateSwapChain(){
         int width = 0, height = 0;
         while (width == 0 || height == 0) {
@@ -408,6 +413,7 @@ private:
         createFramebuffers();
     }
 
+//creating vulkan instance
     void createInstance(){
 // Calling validation check
         if (enableValidationLayers && !checkValidationLayerSupport()){
@@ -449,6 +455,7 @@ private:
         }
     }
 
+//the types of messages requested to be given to the debug messenger
     void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo){
         createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -459,6 +466,7 @@ private:
         createInfo.pfnUserCallback = debugCallback;
     }
 
+//creates the debug messenger within the vulkan instance
     void setupDebugMessenger() {
         if (!enableValidationLayers) return;
         VkDebugUtilsMessengerCreateInfoEXT createInfo;
@@ -469,12 +477,14 @@ private:
         }
     }
 
+//creates the surface for the engine to present to with glfw
     void createSurface(){
         if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS){
             throw std::runtime_error("failed to create window surface!");
         }
     }
 
+//chooses the most suitable device to use for the engine
     void pickPhysicalDevice(){
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -496,12 +506,14 @@ private:
         }
     }
 
+//creates the logic for the device being used, including the queue to submit to
     void createLogicalDevice(){
         QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
+//initialisation values of the queue
         VkDeviceQueueCreateInfo queueCreateInfo{};
         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
@@ -535,7 +547,7 @@ private:
 
         createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
         createInfo.ppEnabledExtensionNames = deviceExtensions.data();
-
+//holds the requested validation layers to be used when debugging is enabled
         if (enableValidationLayers) {
             createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
             createInfo.ppEnabledLayerNames = validationLayers.data();
@@ -550,7 +562,7 @@ private:
         vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
     }
 
-
+//checks for device suitability for rendering
     bool isDeviceSuitable(VkPhysicalDevice device) {
         QueueFamilyIndices indices = findQueueFamilies(device);
 
@@ -568,6 +580,7 @@ private:
         return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
     }
 
+//checks for device support of vulkan extensions
     bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
         uint32_t extensionCount;
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
@@ -584,6 +597,7 @@ private:
         return requiredExtensions.empty();
     }
 
+//finds the queue families for rendering and presentation
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device){
         QueueFamilyIndices indices;
         uint32_t queueFamilyCount = 0;
@@ -612,12 +626,14 @@ private:
         return indices;
     }
 
+//a struct to hold the details for supported functionality relating to the swapchain
     struct SwapChainSupportDetails {
         VkSurfaceCapabilitiesKHR capabilities;
         std::vector<VkSurfaceFormatKHR> formats;
         std::vector<VkPresentModeKHR> presentModes;
     };
 
+//uses the inbuilt vulkan requests for finding supported capabilities
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device){
         SwapChainSupportDetails details;
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
@@ -641,6 +657,7 @@ private:
         return details;
     }
 
+//checks for the desired surface format of the swapchain
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats){
         for (const auto& availableFormat : availableFormats){
             if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR){
@@ -651,6 +668,7 @@ private:
         return availableFormats[0];
     }
 
+//checks that the desired presenting mode is available for the swapchain
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
         for (const auto& availablePresentMode : availablePresentModes){
             if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
@@ -661,6 +679,7 @@ private:
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 
+//chooses the size of the swapchain through either choosing its already defined size or acquiring the size of the current window
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
         if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
             return capabilities.currentExtent;
@@ -680,6 +699,7 @@ private:
         }
     }
 
+//creates the swapchain using the acquired details
     void createSwapChain(){
         SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
 
@@ -696,6 +716,7 @@ private:
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
         createInfo.surface = surface;
 
+// image properties
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = surfaceFormat.format;
         createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -703,6 +724,7 @@ private:
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
+//queue families
         QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
         uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
@@ -736,6 +758,7 @@ private:
 
     }
 
+//creates the image views for the swapchain using the general image view function
     void createImageViews() {
         swapChainImageViews.resize(swapChainImages.size());
 
@@ -744,6 +767,7 @@ private:
         }
     }
 
+//defines the rules in how the renderer should render a frame and what subprocesses it should enact on the frame
     void createRenderPass(){
         VkAttachmentDescription colorAttachment{};
         colorAttachment.format = swapChainImageFormat;
@@ -817,6 +841,7 @@ private:
         }
     }
 
+//creates the setup for the descriptor set which includes the two layouts of the ubo and the image sampler
     void createDescriptorSetLayout() {
         VkDescriptorSetLayoutBinding uboLayoutBinding;
         uboLayoutBinding.binding = 0;
@@ -843,7 +868,9 @@ private:
         }
     }
 
+//creates the graphics pipeline using the input shaders
     void createGraphicsPipeline() {
+//vertex and fragment shader modules are here created from their compiled bytecode format
         auto vertShaderCode = readFile("C:/Users/aaron/CLionProjects/Vulkan/shaders/vert.spv");
         auto fragShaderCode = readFile("C:/Users/aaron/CLionProjects/Vulkan/shaders/frag.spv");
 
@@ -864,6 +891,7 @@ private:
 
         VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
+//vertex handling
         VkPipelineVertexInputStateCreateInfo vertexInputInfo {};
         auto bindingDescription = Vertex::getBindingDescription();
         auto attributeDescriptions = Vertex::getAttributeDescriptions();
@@ -878,6 +906,7 @@ private:
         inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         inputAssembly.primitiveRestartEnable = VK_FALSE;
 
+//defines the region of depth within the renderer
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
@@ -886,10 +915,12 @@ private:
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
 
+//sets the border of the frame to be rendered/cut, in this case the whole thing is shown
         VkRect2D scissor{};
         scissor.offset = {0, 0};
         scissor.extent = swapChainExtent;
 
+//defines the rasteriser's behaviour which creates fragments and culls unnecessary polygons from being rendered
         VkPipelineRasterizationStateCreateInfo rasterizer{};
         rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         rasterizer.depthClampEnable = VK_FALSE;
@@ -903,6 +934,8 @@ private:
         rasterizer.depthBiasClamp = 0.0f;
         rasterizer.depthBiasSlopeFactor = 0.0f;
 
+//defines the multisampler which combines the rendered edges of multiple overlapping
+//fragments to provide a smoother image
         VkPipelineMultisampleStateCreateInfo multisampling{};
         multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         multisampling.sampleShadingEnable = VK_TRUE;
@@ -924,6 +957,8 @@ private:
         depthStencil.front = {};
         depthStencil.back = {};
 
+//combines the calculated colour of a pixel and blends it with the value in the framebuffer, which
+//is empty in this case
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
                 VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -961,6 +996,7 @@ private:
             throw std::runtime_error("failed to create pipeline layout!");
         }*/
 
+//applying the previously defined info to the pipeline
         VkPipelineViewportStateCreateInfo viewportState{};
         viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
         viewportState.viewportCount = 1;
@@ -996,13 +1032,16 @@ private:
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
         pipelineInfo.basePipelineIndex = -1;
 
+//iterates through each object to create an individual graphics pipeline layout and final pipeline
         for (size_t i = 0; i < objectArray.size(); i++) {
-            if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &objectArray[i].pipelineLayout) != VK_SUCCESS){
+            if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr,
+                                       &objectArray[i].pipelineLayout) != VK_SUCCESS){
                 throw std::runtime_error("failed to create pipeline layout!");
             }
             pipelineInfo.layout = objectArray[i].pipelineLayout;
 
-            if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &objectArray[i].graphicsPipeline) != VK_SUCCESS){
+            if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo,
+                                          nullptr, &objectArray[i].graphicsPipeline) != VK_SUCCESS){
                 throw std::runtime_error("failed to create graphics pipeline!");
             }
         }
@@ -1016,10 +1055,12 @@ private:
             throw std::runtime_error("failed to create graphics pipeline!");
         }*/
 
+//shader modules are cleaned up after they are no longer needed
         vkDestroyShaderModule(device, fragShaderModule, nullptr);
         vkDestroyShaderModule(device, vertShaderModule, nullptr);
     }
 
+//creates the shader module from the input shader files
     VkShaderModule createShaderModule(const std::vector<char>& code){
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -1033,6 +1074,7 @@ private:
         return shaderModule;
     }
 
+//creates a framebuffer for each active frame
     void createFramebuffers(){
         swapChainFramebuffers.resize(swapChainImageViews.size());
         for (size_t i = 0; i < swapChainImageViews.size(); i++) {
@@ -1057,6 +1099,7 @@ private:
         }
     }
 
+//creates the pool of commands which the command buffers can pull their available commands from
     void createCommandPool() {
         QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
 
@@ -1071,19 +1114,25 @@ private:
 
     }
 
+//creates a buffer which allows for multisampling to be included within the output image
     void createColorResources() {
         VkFormat colorFormat = swapChainImageFormat;
 
-        createImage(swapChainExtent.width, swapChainExtent.height, 1, msaaSamples, colorFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, colorImage, colorImageMemory);
+        createImage(swapChainExtent.width, swapChainExtent.height, 1, msaaSamples, colorFormat, VK_IMAGE_TILING_OPTIMAL,
+                    VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                    colorImage, colorImageMemory);
         colorImageView = createImageView(colorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
     }
 
+//creates a buffer for the depth of each position in the image to provide info for depth calculation
     void createDepthResources() {
         VkFormat depthFormat = findDepthFormat();
-        createImage(swapChainExtent.width, swapChainExtent.height, 1, msaaSamples, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
+        createImage(swapChainExtent.width, swapChainExtent.height, 1, msaaSamples, depthFormat, VK_IMAGE_TILING_OPTIMAL,
+                    VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
         depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
     }
 
+//helper function to find available formats when given a particular request
     VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
         for (VkFormat format : candidates) {
             VkFormatProperties props;
@@ -1099,6 +1148,7 @@ private:
         throw std::runtime_error("failed to find supported format!");
     }
 
+//finds the most desirable available format for the depth image
     VkFormat findDepthFormat() {
         return findSupportedFormat(
                 {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
@@ -1107,24 +1157,29 @@ private:
                 );
     }
 
+//checks for whether the available depth format has a stencil component as part of it or not
     bool hasStencilComponent(VkFormat format) {
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
 
+//creates an image from the provided texture file to be used as colour data in the fragment shader
+//modified to take the object as input to access all the required variables from the object and output its values to it
     EngineObject createTextureImage(EngineObject inputObject) {
         int texWidth = 0, texHeight = 0, texChannels = 0;
-        stbi_uc* pixels = stbi_load(inputObject.TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        stbi_uc* pixels = stbi_load(inputObject.TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels,
+                                    STBI_rgb_alpha);
         VkDeviceSize imageSize = texWidth * texHeight * 4;
         mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
 
         if (!pixels) {
             throw std::runtime_error("failed to load texture image!");
         }
-
+//a buffer is created to load the image into and is then copied across into the respective buffer in the most optimal format
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
 
-        createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+        createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
         void* data;
         vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
@@ -1133,9 +1188,14 @@ private:
 
         stbi_image_free(pixels);
 
-        createImage(texWidth, texHeight, mipLevels, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, inputObject.textureImage, inputObject.textureImageMemory);
-        transitionImageLayout(inputObject.textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
-        copyBufferToImage(stagingBuffer, inputObject.textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+        createImage(texWidth, texHeight, mipLevels, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB,
+                    VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                    VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, inputObject.textureImage,
+                    inputObject.textureImageMemory);
+        transitionImageLayout(inputObject.textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED,
+                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
+        copyBufferToImage(stagingBuffer, inputObject.textureImage, static_cast<uint32_t>(texWidth),
+                          static_cast<uint32_t>(texHeight));
         // Replaced with transition when generating mipmaps: transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mipLevels);
 
 
@@ -1147,9 +1207,10 @@ private:
         return inputObject;
     }
 
+//creates the smaller, lower resolution images for further viewing distances
     void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels) {
 
-        // Check if image format supports linear blitting
+//check if image format supports linear blitting
         VkFormatProperties formatProperties;
         vkGetPhysicalDeviceFormatProperties(physicalDevice, imageFormat, &formatProperties);
         if(!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
@@ -1185,6 +1246,7 @@ private:
                     1, &barrier
                     );
 
+//dictating how the image should be downsized
             VkImageBlit blit{};
             blit.srcOffsets[0] = { 0, 0, 0 };
             blit.srcOffsets[1] = { mipWidth, mipHeight, 1};
@@ -1235,6 +1297,7 @@ private:
         endSingleTimeCommands(commandBuffer);
     }
 
+//checks the maximum supported multisampling level
     VkSampleCountFlagBits getMaxUsableSampleCount() {
         VkPhysicalDeviceProperties physicalDeviceProperties;
         vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
@@ -1250,11 +1313,14 @@ private:
         return VK_SAMPLE_COUNT_1_BIT;
     }
 
+//creates an image view of the texture image for the swapchain
     EngineObject createTextureImageView(EngineObject inputObject) {
-        inputObject.textureImageView = createImageView(inputObject.textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+        inputObject.textureImageView = createImageView(inputObject.textureImage, VK_FORMAT_R8G8B8A8_SRGB,
+                                                       VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
         return inputObject;
     }
 
+//creates the format for how images should be handled in the swapchain
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) {
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -1274,6 +1340,7 @@ private:
         return imageView;
     }
 
+//creates the texture sampler to hande anisotropic filtering and transformations
     EngineObject createTextureSampler(EngineObject inputObject) {
         VkPhysicalDeviceProperties properties{};
         vkGetPhysicalDeviceProperties(physicalDevice, &properties);
@@ -1303,6 +1370,7 @@ private:
         return inputObject;
     }
 
+//creates an image in the form that the renderer can interpret with the memory to go along with it
     void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -1324,6 +1392,7 @@ private:
             throw std::runtime_error("failed to create image!");
         }
 
+//memory allocation
         VkMemoryRequirements memRequirements;
         vkGetImageMemoryRequirements(device, image, &memRequirements);
 
@@ -1339,6 +1408,7 @@ private:
         vkBindImageMemory(device, image, imageMemory, 0);
     }
 
+//helper function for converting an image between two formats.
     void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels) {
         VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
@@ -1386,6 +1456,7 @@ private:
         endSingleTimeCommands(commandBuffer);
     }
 
+//helper function to copy data from a buffer to an image
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
         VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
@@ -1418,6 +1489,7 @@ private:
         endSingleTimeCommands(commandBuffer);
     }
 
+//model loader function using the tinyobj library
     EngineObject loadModel(EngineObject inputObject) {
         tinyobj::attrib_t attrib;
         std::vector<tinyobj::shape_t> shapes;
@@ -1447,6 +1519,7 @@ private:
 
                 vertex.color  = {1.0f, 1.0f, 1.0f};
 
+//if a unique vertex is found it is placed into the uniqueVertices array
                 if (uniqueVertices.count(vertex) == 0) {
                     uniqueVertices[vertex] = static_cast<uint32_t>(inputObject.vertices.size());
                     inputObject.vertices.push_back(vertex);
@@ -1458,6 +1531,7 @@ private:
         return inputObject;
     }
 
+//helper function to create buffers
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -1484,6 +1558,7 @@ private:
         vkBindBufferMemory(device, buffer, bufferMemory, 0);
     }
 
+//helper function to execute a small set of particular commands inbetween frames
     VkCommandBuffer beginSingleTimeCommands() {
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -1503,6 +1578,7 @@ private:
         return commandBuffer;
     }
 
+//corresponding helper function to beginSingleTimeCommands which ends command recording and submits to the GPU
     void endSingleTimeCommands(VkCommandBuffer commandBuffer) {
         vkEndCommandBuffer(commandBuffer);
 
@@ -1517,6 +1593,7 @@ private:
         vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
     }
 
+//helper function to transfer data between buffers
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
        VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
@@ -1527,19 +1604,22 @@ private:
        endSingleTimeCommands(commandBuffer);
     }
 
+//creates the vertex buffer using the staging buffer which contains the unique vertex data
     EngineObject createVertexBuffer(EngineObject inputObject){
         VkDeviceSize bufferSize = sizeof(inputObject.vertices[0]) * inputObject.vertices.size();
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
         void* data;
         vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0 , &data);
         memcpy(data, inputObject.vertices.data(), (size_t) bufferSize);
         vkUnmapMemory(device, stagingBufferMemory);
 
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, inputObject.vertexBuffer, inputObject.vertexBufferMemory);
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, inputObject.vertexBuffer, inputObject.vertexBufferMemory);
 
         copyBuffer(stagingBuffer, inputObject.vertexBuffer, bufferSize);
 
@@ -1549,6 +1629,7 @@ private:
         return inputObject;
     }
 
+//checks the memory type of a particular device so the correct format of memory can be assigned
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
         VkPhysicalDeviceMemoryProperties memProperties;
         vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
@@ -1562,19 +1643,22 @@ private:
         throw std::runtime_error("failed to find suitable memory type!");
     }
 
+//creates the index buffer using the staging buffer which contains the total vertex data
     EngineObject createIndexBuffer(EngineObject inputObject) {
         VkDeviceSize bufferSize = sizeof(inputObject.indices[0]) * inputObject.indices.size();
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
         void* data;
         vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
         memcpy(data, inputObject.indices.data(), (size_t) bufferSize);
         vkUnmapMemory(device, stagingBufferMemory);
 
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, inputObject.indexBuffer, inputObject.indexBufferMemory);
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, inputObject.indexBuffer, inputObject.indexBufferMemory);
 
         copyBuffer(stagingBuffer, inputObject.indexBuffer, bufferSize);
 
@@ -1584,19 +1668,23 @@ private:
         return inputObject;
     }
 
+//creates buffers for the uniform buffer objects
     void createUniformBuffers() {
         VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
         uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT*objectArray.size());
         uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT*objectArray.size());
-        uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT*bufferObjectCount);
+        uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT*objectArray.size());
 
+//uniform buffers are scaled for the number of objects in the scene
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT*bufferObjectCount; i++) {
-            createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
+            createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
             vkMapMemory(device, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
         }
     }
 
+//creates a descriptor pool using the requested descriptors
     void createDescriptorPool() {
         VkDescriptorPoolSize poolSize{};
         std::array<VkDescriptorPoolSize, 2> poolSizes{};
@@ -1616,6 +1704,7 @@ private:
         }
     }
 
+//creates the descriptor sets using the descriptor pool for the uniform buffer and image sampler
     EngineObject createDescriptorSets(EngineObject inputObject){
         std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
         VkDescriptorSetAllocateInfo allocInfo{};
@@ -1684,13 +1773,16 @@ private:
                 }
             }
 
-            vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+            vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()),
+                                   descriptorWrites.data(), 0, nullptr);
         }
 
         return inputObject;
     }
 
+//creates the buffers which hold the commands to be executed during rendering
     void createCommandBuffers() {
+//command buffers are allocated for the number of active frames for each object
         commandBuffers.resize(MAX_FRAMES_IN_FLIGHT*bufferObjectCount);
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -1704,6 +1796,7 @@ private:
 
     }
 
+//the commands and their associated data are recorded into the command buffer here
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, size_t commandBufferCount) {
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1730,6 +1823,7 @@ private:
 
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+//each object has its pipeline bound to the renderer
         for (size_t i = 0; i < objectArray.size(); i++) {
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, objectArray[i].graphicsPipeline);
         }
@@ -1750,6 +1844,7 @@ private:
         scissor.extent = swapChainExtent;
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
+//each object's buffers and descriptor sets are bound as well as being drawn
         for (size_t i = 0; i < objectArray.size(); i++) {
             VkBuffer vertexBuffers[] = {objectArray[i].vertexBuffer};
             VkDeviceSize offsets[] = {0};
@@ -1788,7 +1883,8 @@ private:
 
     }
 
-
+//creates the fences and semaphores needed to synchronise operations so that all parts of the engine have
+//the data they need when they need it
     void createSyncObjects(){
         imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
         renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
@@ -1812,20 +1908,26 @@ private:
 
     }
 
+//used for acquiring the time between frames
     void frameTime() {
         float currentFrameTime = glfwGetTime();
         deltaTime = currentFrameTime - lastFrameTime;
         lastFrameTime = currentFrameTime;
-        //prints the framerate into the console
-        //std::cout << 1/deltaTime << "\n";
+        if (enableValidationLayers == true) {
+//prints the framerate into the console
+            std::cout << 1/deltaTime << "\n";
+        }
     }
 
-
+//submits the command buffers to the queue to be carried out
     void drawFrame() {
+//synchronisation
         vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
-
+//gets the next available image from the swapchain
         uint32_t imageIndex;
-        VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+        VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX,
+                                                imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE,
+                                                &imageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             recreateSwapChain();
@@ -1838,13 +1940,14 @@ private:
 
         vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
-        vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
-
+        vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame],
+                              VK_NULL_HANDLE, &imageIndex);
+//clears and records a new set of commands for each object
         for (size_t i = 0; i < bufferObjectCount; i++) {
             vkResetCommandBuffer(commandBuffers[currentFrame + (i * MAX_FRAMES_IN_FLIGHT)], 0);
             recordCommandBuffer(commandBuffers[currentFrame + (i * MAX_FRAMES_IN_FLIGHT)], imageIndex, i);
         }
-
+//queue submission info structure
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -1854,6 +1957,7 @@ private:
         submitInfo.pWaitSemaphores = waitSemaphores;
         submitInfo.pWaitDstStageMask = waitStages;
 
+//accumulates all commands to be carried out into a single vector array
         std::vector<VkCommandBuffer> currentFrameCommands;
         currentFrameCommands.resize(bufferObjectCount);
         for (size_t i = 0; i < bufferObjectCount; i++) {
@@ -1869,7 +1973,7 @@ private:
         if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS){
             throw std::runtime_error("failed to submit draw command buffer!");
         }
-
+//presentation submission info structure
         VkPresentInfoKHR presentInfo{};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
@@ -1890,7 +1994,7 @@ private:
         } else if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to present swap chain image!");
         }
-
+//moves between 0 and 1 as the active frame
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
@@ -1898,6 +2002,7 @@ private:
         inputUbo;
     }*/
 
+//applies transformations onto UBOs
     void updateUniformBuffer(uint32_t currentImage) {
         /*static auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -1912,46 +2017,48 @@ private:
         }
 
         ubo.model = store_rotation;*/
-
+//time between calculations is accounted for in the rotation and movement speeds so that variable framerates do not
+//interfere with perceived motion for the user
         float rotation_speed = rotation_factor * deltaTime;
         float movement_speed = movement_factor * deltaTime;
 
+//mouse initialisation
         if (first_mouse) {
             lastX = cursorX;
             lastY = cursorY;
             first_mouse = false;
         }
-
+//calculates the change in mouse position
         float xoffset = cursorX - lastX;
         float yoffset = lastY - cursorY;
-
+//stores the previous mouse position
         lastX = cursorX;
         lastY = cursorY;
-
+//the distance for the rotation to change is calculated
         xoffset *= mouseSensitivity;
         yoffset *= mouseSensitivity;
-
+//application of change in rotation
         yaw += xoffset;
         pitch += yoffset;
 
-        // prevents pitch from moving out of range
+//prevents pitch from moving out of range
         if (pitch > 89.0f)
             pitch = 89.0f;
         if (pitch < -89.0f)
             pitch = -89.0f;
-
+//used for changing the centre perspective of the camera
         glm::vec3 front;
         front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
         front.y = sin(glm::radians(pitch));
         front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-
+//used for non-freecam mode
         glm::vec3 cameraFront_movement;
         cameraFront_movement = front;
         cameraFront_movement.y = 0;
         cameraFront_movement = glm::normalize(cameraFront_movement);
 
         cameraFront = glm::normalize(front);
-
+//moving the player character
         if (trans_xpos) {
             movementAttempt(1, glm::vec3(movement_factor, 0.0f, 0.0f));
         }
@@ -1979,7 +2086,9 @@ private:
         if (trans_zneg) {
             movementAttempt(1, glm::vec3(0.0f, 0.0f, -movement_factor));
         }
-// multiply movement by camerafront for freecam or multiply by camerafront_movement to exclude y-axis from camera facing movement
+
+//moving the camera
+//multiply movement by camerafront for freecam or multiply by camerafront_movement to exclude y-axis from camera facing movement
         if (move_forward) {
             if (freecam) {
                 cameraPos += movement_speed * cameraFront;
@@ -2030,16 +2139,18 @@ private:
         objectArray[1].simulationDetails = objectArray[0].simulationDetails;
         objectArray[1].simulationDetails.model = glm::translate(objectArray[1].simulationDetails.model, glm::vec3(0.0,0.0,time));
         memcpy(uniformBuffersMapped[currentImage + 2], &objectArray[1].simulationDetails, sizeof(objectArray[1].simulationDetails));*/
-
+//the camera view is given to each of the objects as it applies to all of them
         for (size_t i = 0; i < objectArray.size(); i++) {
             objectArray[i].simulationDetails.view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-            objectArray[i].simulationDetails.proj = glm::perspective(glm::radians(100.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 500.0f);
+            objectArray[i].simulationDetails.proj = glm::perspective(glm::radians(100.0f),
+                swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 500.0f);
             objectArray[i].simulationDetails.proj[1][1] *= -1;
 
-            memcpy(uniformBuffersMapped[currentImage + (objectArray[i].uniformbufferOffset * MAX_FRAMES_IN_FLIGHT)], &objectArray[i].simulationDetails, sizeof(objectArray[i].simulationDetails));
+            memcpy(uniformBuffersMapped[currentImage + (objectArray[i].uniformbufferOffset * MAX_FRAMES_IN_FLIGHT)],
+                   &objectArray[i].simulationDetails, sizeof(objectArray[i].simulationDetails));
         }
     }
-
+//object initialisation
     void initObject() {
         // Path initialisation
         setObjectPath();
@@ -2062,14 +2173,15 @@ private:
         objectArray[2] = cube;
         objectArray[3] = cube2;
 
+//position values are initialised
         for (size_t i = 0; i < (objectArray.size()); i++) {
             objectArray[i].simulationDetails.model = glm::mat4(1.0f);
         }
-
+//collision position initialisation
         for (size_t i = 0; i < objectArray.size(); i++) {
             objectArray[i].collision.position = objectArray[i].simulationDetails.model * glm::vec4(1.0f);
         }
-
+//position and scales of object sizes are defined here
         objectArray[0].simulationDetails.model = glm::translate(objectArray[0].simulationDetails.model, glm::vec3(0.0f, -50.0f, 0.0f));
         objectArray[0].simulationDetails.model = glm::scale(objectArray[0].simulationDetails.model, glm::vec3(100.0f, 10.0f, 100.0f));
         objectArray[2].simulationDetails.model = glm::translate(objectArray[2].simulationDetails.model, glm::vec3(10.0f, -30.0f, 0.0f));
@@ -2077,9 +2189,9 @@ private:
 
     }
 
-    // Scene logic goes here
+//scene logic goes here
     void simulationActions() {
-        // Area bounds
+//area bounds
         if (cameraPos.y >= 50) {
             cameraPos.y = 50.0f;
         }
@@ -2099,12 +2211,13 @@ private:
             cameraPos.z = -50.0f;
         }
 
-        // Jumping for the player
-        objectArray[1].movement.acceleration.y -= 0.75*deltaTime;
-        objectArray[1].movement.velocity = (update_velcoity(objectArray[1].movement.velocity, objectArray[1].movement.acceleration));
+//velocity and acceleration adjustment
+        objectArray[1].movement.acceleration.y -= 80*deltaTime;
+        objectArray[1].movement.velocity = (update_velocity(objectArray[1].movement.velocity,
+                                                            objectArray[1].movement.acceleration*deltaTime));
         movementAttempt(1, objectArray[1].movement.velocity);
 
-        // Simulation reset
+//simulation reset
         if (reset) {
             objectArray[1].simulationDetails.model = glm::mat4(1.0f);
             objectArray[1].movement.velocity.y = 0;
@@ -2113,12 +2226,12 @@ private:
         }
 
     }
-
+//the test for whether a valid movement can occur and the adjustment if a collision occurs during the movement
     bool movementAttempt (size_t objectArrayValue, glm::vec3 movementQuantity) {
         std::vector<std::vector<bool>> beforeCollisionArray;
         beforeCollisionArray.resize(objectArray.size());
         movementQuantity = movementQuantity*deltaTime;
-
+//checks whether there are any preexisting collisions occurring before the new movement is checked
         for (size_t i = 0; i < objectArray.size(); i++) {
             beforeCollisionArray[i].resize(3);
             std::vector<bool> collisionTemp;
@@ -2133,20 +2246,23 @@ private:
             beforeCollisionArray[i][2] = collisionTemp[2];
 
         }
-
-        objectArray[objectArrayValue].simulationDetails.model = glm::translate(objectArray[objectArrayValue].simulationDetails.model, movementQuantity);
+//carries out the movement and updates the location of the collision
+        objectArray[objectArrayValue].simulationDetails.model =
+                glm::translate(objectArray[objectArrayValue].simulationDetails.model, movementQuantity);
         updatePosition(objectArrayValue);
-
+//checks collision with all objects in the scene
         for (size_t i = 0; i < objectArray.size(); i++) {
-            //first 3 values of the array are x,y,z on the positive axis, with the next 3 being the negative axes
-            std::vector <bool> collisionArray = checkCollision(objectArray[objectArrayValue].collision, objectArray[i].collision);
+//first 3 values of the array are x,y,z on the positive axis, with the next 3 being the negative axes
+            std::vector <bool> collisionArray = checkCollision(objectArray[objectArrayValue].collision,
+                                                               objectArray[i].collision);
             collisionArray[0] = collisionArray[0] && collisionArray[3];
             collisionArray[1] = collisionArray[1] && collisionArray[4];
             collisionArray[2] = collisionArray[2] && collisionArray[5];
-
+//checks the position where the collision occurred so that it can be transformed back from the direction it collided in
             if (collisionArray[0] && collisionArray[1] && collisionArray[2]) {
                 if (i != objectArrayValue) {
                     auto adjustment = glm::vec3(0.0f);
+//surface adjustment is added to prevent objects from being set to perfectly touch align with each other when the adjustment is carried out
                     float surfaceAdjustmentFactor = 0.001;
 
                     bool xpos = false;
@@ -2159,14 +2275,16 @@ private:
                     if (collisionArray[0] != beforeCollisionArray[i][0]){
 
                         if (movementQuantity.x > 0) {
-                            adjustment.x = (objectArray[i].collision.position_offset.x - objectArray[i].collision.size.x) - (objectArray[objectArrayValue].collision.position_offset.x + objectArray[objectArrayValue].collision.size.x);
+                            adjustment.x = (objectArray[i].collision.position_offset.x - objectArray[i].collision.size.x) -
+                                    (objectArray[objectArrayValue].collision.position_offset.x + objectArray[objectArrayValue].collision.size.x);
                             objectArray[objectArrayValue].movement.velocity.x = 0;
                             objectArray[objectArrayValue].movement.acceleration.x = 0;
                             xpos = true;
                         }
 
                         if (movementQuantity.x < 0) {
-                            adjustment.x = (objectArray[i].collision.position_offset.x + objectArray[i].collision.size.x) - (objectArray[objectArrayValue].collision.position_offset.x - objectArray[objectArrayValue].collision.size.x);
+                            adjustment.x = (objectArray[i].collision.position_offset.x + objectArray[i].collision.size.x) -
+                                    (objectArray[objectArrayValue].collision.position_offset.x - objectArray[objectArrayValue].collision.size.x);
                             objectArray[objectArrayValue].movement.velocity.x = 0;
                             objectArray[objectArrayValue].movement.acceleration.x = 0;
                             xneg = true;
@@ -2175,14 +2293,16 @@ private:
 
                     if (collisionArray[1] != beforeCollisionArray[i][1]){
                         if (movementQuantity.y > 0) {
-                            adjustment.y = (objectArray[i].collision.position_offset.y - objectArray[i].collision.size.y) - (objectArray[objectArrayValue].collision.position_offset.y + objectArray[objectArrayValue].collision.size.y);
+                            adjustment.y = (objectArray[i].collision.position_offset.y - objectArray[i].collision.size.y) -
+                                    (objectArray[objectArrayValue].collision.position_offset.y + objectArray[objectArrayValue].collision.size.y);
                             objectArray[objectArrayValue].movement.velocity.y = 0;
                             objectArray[objectArrayValue].movement.acceleration.y = 0;
                             ypos = true;
                         }
 
                         if (movementQuantity.y < 0) {
-                            adjustment.y = (objectArray[i].collision.position_offset.y + objectArray[i].collision.size.y) - (objectArray[objectArrayValue].collision.position_offset.y - objectArray[objectArrayValue].collision.size.y);
+                            adjustment.y = (objectArray[i].collision.position_offset.y + objectArray[i].collision.size.y) -
+                                    (objectArray[objectArrayValue].collision.position_offset.y - objectArray[objectArrayValue].collision.size.y);
                             objectArray[objectArrayValue].movement.velocity.y = 0;
                             objectArray[objectArrayValue].movement.acceleration.y = 0;
                             yneg = true;
@@ -2194,21 +2314,24 @@ private:
 
                     if (collisionArray[2] != beforeCollisionArray[i][2]){
                         if (movementQuantity.z > 0) {
-                            adjustment.z = (objectArray[i].collision.position_offset.z - objectArray[i].collision.size.z) - (objectArray[objectArrayValue].collision.position_offset.z + objectArray[objectArrayValue].collision.size.z);
+                            adjustment.z = (objectArray[i].collision.position_offset.z - objectArray[i].collision.size.z) -
+                                    (objectArray[objectArrayValue].collision.position_offset.z + objectArray[objectArrayValue].collision.size.z);
                             objectArray[objectArrayValue].movement.velocity.z = 0;
                             objectArray[objectArrayValue].movement.acceleration.z = 0;
                             zpos = true;
                         }
 
                         if (movementQuantity.z < 0) {
-                            adjustment.z = (objectArray[i].collision.position_offset.z + objectArray[i].collision.size.z) - (objectArray[objectArrayValue].collision.position_offset.z - objectArray[objectArrayValue].collision.size.z);
+                            adjustment.z = (objectArray[i].collision.position_offset.z + objectArray[i].collision.size.z) -
+                                    (objectArray[objectArrayValue].collision.position_offset.z - objectArray[objectArrayValue].collision.size.z);
                             objectArray[objectArrayValue].movement.velocity.z = 0;
                             objectArray[objectArrayValue].movement.acceleration.z = 0;
                             zneg = true;
                         }
                     }
-
-                    objectArray[objectArrayValue].simulationDetails.model = glm::translate(objectArray[objectArrayValue].simulationDetails.model, adjustment);
+//adjustment is carried out
+                    objectArray[objectArrayValue].simulationDetails.model = glm::translate(objectArray[objectArrayValue].simulationDetails.model,
+                                                                                           adjustment);
                     updatePosition(objectArrayValue);
 
                     auto surfaceAdjustment = glm::vec3(0);
@@ -2236,11 +2359,10 @@ private:
                     if (zneg) {
                         surfaceAdjustment.z = surfaceAdjustmentFactor;
                     }
-
-                    objectArray[objectArrayValue].simulationDetails.model = glm::translate(objectArray[objectArrayValue].simulationDetails.model, surfaceAdjustment);
+//surface adjustment is carried out
+                    objectArray[objectArrayValue].simulationDetails.model = glm::translate(objectArray[objectArrayValue].simulationDetails.model,
+                                                                                           surfaceAdjustment);
                     updatePosition(objectArrayValue);
-
-                    //std::vector <bool> test = checkCollision(objectArray[objectArrayValue].collision, objectArray[i].collision);
 
                     return false;
                 }
@@ -2248,25 +2370,26 @@ private:
         }
         return true;
     }
-
+//sets the collision for each object to the position of its model
     void processCollision() {
         for (size_t i = 0; i < objectArray.size(); i++) {
             updatePosition(i);
         }
     }
-
+//sets the collision position to the model position
     void updatePosition(size_t arrayPosition) {
         objectArray[arrayPosition].collision.position = objectArray[arrayPosition].simulationDetails.model * glm::vec4(1.0f);
         objectArray[arrayPosition].collision.position_offset = objectArray[arrayPosition].collision.position; //glm::vec3(((objectArray[arrayPosition].collision.position.x + objectArray[arrayPosition].collision.size.x) / 2), ((objectArray[arrayPosition].collision.position.y + objectArray[arrayPosition].collision.size.y) / 2), ((objectArray[arrayPosition].collision.position.z + objectArray[arrayPosition].collision.size.z) / 2));
     }
 
+//acquires the necessary extensions for the vulkan instance
     std::vector<const char*> getRequiredExtensions(){
         uint32_t glfwExtensionCount = 0;
         const char** glfwExtensions;
         glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
         std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
+//when in debug mode outputs the extensions that are acquired
         if (enableValidationLayers){
             extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         }
@@ -2275,14 +2398,14 @@ private:
 
     }
 
-    // Validation layer checking
+//validation layer checking
     bool checkValidationLayerSupport(){
         uint32_t layerCount;
         vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
         std::vector<VkLayerProperties> availableLayers(layerCount);
         vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
-//Layer comparison with required and available layers
+//vayer comparison with required and available layers
         for(const char* layerName : validationLayers){
             bool layerFound = false;
 
@@ -2300,7 +2423,7 @@ private:
 
     }
 
-// Vulkan inbuilt callback messaging system
+//the structure of the callback for all of the responses from the debugger
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
             VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
             VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -2316,7 +2439,7 @@ private:
 
 int main() {
     VulkanEngine app;
-// Basic error handling
+//general error handling
     try {
         app.run();
     } catch (const std::exception& e) {

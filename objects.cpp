@@ -1,3 +1,4 @@
+//object initialisation pre-startup
 EngineObject player;
 EngineObject ground;
 EngineObject cube;

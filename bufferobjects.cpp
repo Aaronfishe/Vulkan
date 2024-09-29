@@ -1,10 +1,12 @@
 #include "movement.cpp"
 
+//the structure to contain data for each vertex
 struct Vertex{
     glm::vec3 pos;
     glm::vec3 color;
     glm::vec2 texCoord;
 
+//defines the attributes of the vertex for when binding to a pipeline
     static VkVertexInputBindingDescription getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription{};
         bindingDescription.binding = 0;
@@ -14,6 +16,7 @@ struct Vertex{
         return bindingDescription;
     }
 
+//defines the format of the data within the structure
     static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions(){
         std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
         attributeDescriptions[0].binding = 0;
@@ -33,13 +36,14 @@ struct Vertex{
 
         return attributeDescriptions;
     }
-
+//overriding the == operator so that it performs an equality test for use with the hash table
+//that stores unique vertices
     bool operator==(const Vertex& other) const{
         return pos == other.pos && color == other.color && texCoord == other.texCoord;
     }
 
 };
-
+//hash calculation for the vertex hash table
 namespace std{
     template<> struct hash<Vertex> {
         size_t operator()(Vertex const& vertex) const {
@@ -49,13 +53,14 @@ namespace std{
         }
     };
 }
-
+//buffer object struct which is specifically set to fit within the accepted
+//alignments from the shader which require multiples of 16 for mat4
 struct UniformBufferObject {
     alignas(16) glm::mat4 model;
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
 };
-
+//class for all objects in the scene
 class EngineObject{
 public:
     movement movement;
